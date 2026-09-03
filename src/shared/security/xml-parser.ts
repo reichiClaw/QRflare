@@ -36,7 +36,10 @@ export interface XmlComment {
 export type XmlNode = XmlElement | XmlText | XmlCData | XmlComment;
 
 export class XmlParseError extends Error {
-  constructor(message: string, readonly position: number) {
+  constructor(
+    message: string,
+    readonly position: number,
+  ) {
     super(`${message} (at offset ${position})`);
     this.name = 'XmlParseError';
   }

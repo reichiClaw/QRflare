@@ -46,10 +46,14 @@ export const GradientSchema = z.object({
   type: z.enum(['linear', 'radial']).default('linear'),
   /** Degrees, 0 = left→right, 90 = top→bottom. */
   angle: z.number().min(0).max(360).default(45),
-  stops: z.array(GradientStopSchema).min(2, 'A gradient needs at least two colour stops.').max(6).default([
-    { offset: 0, color: '#2563EB' },
-    { offset: 1, color: '#14B8A6' },
-  ]),
+  stops: z
+    .array(GradientStopSchema)
+    .min(2, 'A gradient needs at least two colour stops.')
+    .max(6)
+    .default([
+      { offset: 0, color: '#2563EB' },
+      { offset: 1, color: '#14B8A6' },
+    ]),
   /** Apply to data modules only or to finder patterns as well. */
   target: z.enum(['modules', 'all']).default('all'),
 });
@@ -75,7 +79,10 @@ export const LogoSchema = z.object({
   dataUrl: z
     .string()
     .max(1_400_000, 'Logo must be smaller than 1 MB.')
-    .regex(/^data:image\/(png|jpeg|webp|svg\+xml);base64,[A-Za-z0-9+/]+=*$/, 'Logo must be a base64 image data URL.')
+    .regex(
+      /^data:image\/(png|jpeg|webp|svg\+xml);base64,[A-Za-z0-9+/]+=*$/,
+      'Logo must be a base64 image data URL.',
+    )
     .optional(),
   /** Logo width as a fraction of the QR matrix width (quiet zone excluded). */
   scale: z.number().min(0.05).max(0.4).default(0.2),
@@ -204,7 +211,7 @@ export const FILE_EXTENSIONS: Record<OutputFormat, string> = {
 
 /** Deep-merges a partial style onto defaults and validates the result. */
 export function resolveStyle(partial: unknown): Style {
-  return StyleSchema.parse(deepMerge(DEFAULT_STYLE as unknown as Record<string, unknown>, partial));
+  return StyleSchema.parse(deepMerge(DEFAULT_STYLE, partial));
 }
 
 export function deepMerge(base: Record<string, unknown>, patch: unknown): Record<string, unknown> {

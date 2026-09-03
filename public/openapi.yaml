@@ -1,0 +1,572 @@
+openapi: 3.1.0
+info:
+  title: EdgeQR Studio API
+  version: 1.0.0
+  summary: Generate standards-compliant, styled QR codes as SVG, PNG or JPEG.
+  description: |
+    EdgeQR Studio exposes a small, versioned HTTP API next to its web UI. The API uses
+    the same validation, payload builders, encoder and renderer as the browser editor.
+
+    * Requests are validated with a strict JSON schema (`GET /api/v1/schema`).
+    * Responses carry `Cache-Control: no-store`; QR payloads are never logged.
+    * Cross-origin requests are rejected unless the origin is listed in `CORS_ALLOWED_ORIGINS`.
+    * When the `API_TOKEN` variable is set, `/api/v1/*` requires `Authorization: Bearer <token>`
+      (the bundled frontend, which renders locally anyway, is exempt).
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: https://edgeqr-studio.YOUR-SUBDOMAIN.workers.dev
+    description: Your Cloudflare Workers deployment
+  - url: http://localhost:5173
+    description: Local development (npm run dev)
+tags:
+  - name: system
+  - name: qr
+  - name: dynamic
+    description: Optional D1-backed short links (disabled by default).
+security:
+  - {}
+  - bearerAuth: []
+paths:
+  /api/health:
+    get:
+      tags: [system]
+      summary: Health, version and limits
+      security: [{}]
+      responses:
+        '200':
+          description: Service is healthy.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+              example:
+                status: ok
+                name: EdgeQR Studio
+                version: 1.0.0
+                commit: 81f217a18563
+                buildTime: 2026-09-03T12:00:00.000Z
+                api: { version: v1, openapi: /openapi.yaml }
+                features: { dynamicQr: false, apiTokenRequired: false }
+                limits: { maxRequestBodyBytes: 1600000, maxRasterSize: 4096, maxPayloadChars: 4000 }
+  /api/v1/schema:
+    get:
+      tags: [system]
+      summary: JSON Schema of the generate/validate request body
+      responses:
+        '200':
+          description: Draft 2020-12 JSON Schema plus endpoint references.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  openapi: { type: string, example: /openapi.yaml }
+                  endpoints: { type: object }
+                  requestSchema: { type: object, description: JSON Schema (draft 2020-12) }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/v1/validate:
+    post:
+      tags: [qr]
+      summary: Validate content and settings without rendering
+      description: Returns the encoded payload, capacity information, reliability warnings and the normalized settings.
+      requestBody:
+        $ref: '#/components/requestBodies/Generate'
+      responses:
+        '200':
+          description: The request is valid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidateResponse'
+              example:
+                ok: true
+                payload: 'WIFI:T:WPA;S:Cafe Guest;P:latte\;art;;'
+                qr: { version: 3, matrixSize: 29, errorCorrection: Q, mask: 5, byteLength: 39, charLength: 39, capacityUsedPercent: 62.5, remainingBytes: 14, marginModules: 4 }
+                reliability: { status: excellent, score: 100, warnings: [] }
+                normalized: { content: { type: wifi, value: { ssid: Cafe Guest, password: latte;art, encryption: WPA, hidden: false } }, qr: {}, style: {}, output: {} }
+                image: { width: 1024, height: 1024, mimeType: image/png, filename: wifi-qr.png }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '413': { $ref: '#/components/responses/TooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMedia' }
+        '422': { $ref: '#/components/responses/Capacity' }
+  /api/v1/generate:
+    post:
+      tags: [qr]
+      summary: Generate a QR code image
+      description: |
+        Returns the image bytes directly. `Content-Type` matches the requested `output.format`
+        (`image/svg+xml`, `image/png` or `image/jpeg`) and `Content-Disposition` carries a
+        sanitized file name whose extension always matches the real encoding.
+        Add `?disposition=inline` to display the image instead of downloading it.
+      parameters:
+        - in: query
+          name: disposition
+          schema: { type: string, enum: [attachment, inline], default: attachment }
+      requestBody:
+        $ref: '#/components/requestBodies/Generate'
+      responses:
+        '200':
+          description: Image bytes.
+          headers:
+            Content-Disposition: { schema: { type: string }, example: 'attachment; filename="example-qr.png"' }
+            Cache-Control: { schema: { type: string }, example: no-store }
+            X-QR-Version: { schema: { type: integer }, description: QR version (1-40) used. }
+            X-QR-Error-Correction: { schema: { type: string, enum: [L, M, Q, H] } }
+            X-QR-Reliability: { schema: { type: string, enum: [excellent, good, risky] } }
+          content:
+            image/svg+xml: { schema: { type: string } }
+            image/png: { schema: { type: string, format: binary } }
+            image/jpeg: { schema: { type: string, format: binary } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '413': { $ref: '#/components/responses/TooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMedia' }
+        '422': { $ref: '#/components/responses/Capacity' }
+  /r/{code}:
+    get:
+      tags: [dynamic]
+      summary: Redirect a dynamic short link
+      parameters:
+        - in: path
+          name: code
+          required: true
+          schema: { type: string, pattern: '^[A-Za-z0-9_-]{4,32}$' }
+      responses:
+        '302': { description: Redirect to the current destination. }
+        '404': { description: Unknown, disabled, expired or exhausted link (HTML page). }
+  /api/v1/dynamic/links:
+    get:
+      tags: [dynamic]
+      summary: List dynamic links (admin)
+      security: [{ adminAuth: [] }]
+      responses:
+        '200':
+          description: Links.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  links: { type: array, items: { $ref: '#/components/schemas/DynamicLink' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { description: Module disabled. }
+    post:
+      tags: [dynamic]
+      summary: Create a dynamic link (admin)
+      security: [{ adminAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DynamicLinkInput' }
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: { link: { $ref: '#/components/schemas/DynamicLink' } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { description: Code already exists. }
+  /api/v1/dynamic/links/{code}:
+    parameters:
+      - in: path
+        name: code
+        required: true
+        schema: { type: string }
+    get:
+      tags: [dynamic]
+      summary: Link details with daily aggregate scans (admin)
+      security: [{ adminAuth: [] }]
+      responses:
+        '200':
+          description: Link and aggregate scans per UTC day.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  link: { $ref: '#/components/schemas/DynamicLink' }
+                  scansByDay:
+                    type: array
+                    items: { type: object, properties: { day: { type: string, format: date }, count: { type: integer } } }
+        '404': { description: Not found. }
+    patch:
+      tags: [dynamic]
+      summary: Update destination, label, expiry, scan limit or enabled state (admin)
+      security: [{ adminAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DynamicLinkPatch' }
+      responses:
+        '200': { description: Updated. }
+        '404': { description: Not found. }
+    delete:
+      tags: [dynamic]
+      summary: Delete a link and its counters (admin)
+      security: [{ adminAuth: [] }]
+      responses:
+        '204': { description: Deleted. }
+        '404': { description: Not found. }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Required only when the API_TOKEN variable is configured.
+    adminAuth:
+      type: http
+      scheme: bearer
+      description: DYNAMIC_ADMIN_TOKEN secret (dynamic module only).
+  requestBodies:
+    Generate:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenerateRequest'
+          examples:
+            text:
+              summary: Plain text as SVG
+              value:
+                content: { type: text, value: { text: 'Hello from EdgeQR Studio ✨' } }
+                output: { format: svg, filename: hello }
+            url:
+              summary: URL with gradient, rounded modules, PNG 1024 px
+              value:
+                content: { type: url, value: { url: https://example.com } }
+                qr: { errorCorrection: H, version: auto, marginModules: 4 }
+                style:
+                  moduleShape: rounded
+                  foreground: '#082F49'
+                  background: '#FFFFFF'
+                  gradient:
+                    enabled: true
+                    type: linear
+                    angle: 45
+                    stops: [{ offset: 0, color: '#2563EB' }, { offset: 1, color: '#14B8A6' }]
+                output: { format: png, size: 1024, jpegQuality: 90, filename: example-qr }
+            wifi:
+              summary: Wi-Fi network
+              value:
+                content: { type: wifi, value: { ssid: Cafe Guest, password: 'latte;art', encryption: WPA, hidden: false } }
+                output: { format: png, size: 512 }
+            vcard:
+              summary: vCard 3.0 contact
+              value:
+                content:
+                  type: vcard
+                  value:
+                    version: '3.0'
+                    firstName: Ada
+                    lastName: Lovelace
+                    organization: Analytical Engines Ltd
+                    title: Mathematician
+                    phones: [{ type: CELL, number: '+44 20 7946 0958' }]
+                    emails: [{ type: WORK, address: ada@example.com }]
+                    website: https://example.com
+                    street: 12 Byron Street
+                    city: London
+                    postalCode: W1J 5AA
+                    country: United Kingdom
+                qr: { errorCorrection: M }
+                output: { format: svg }
+            epc:
+              summary: SEPA / EPC bank transfer
+              value:
+                content:
+                  type: epc
+                  value: { name: Red Cross of Belgium, iban: BE72000000001616, bic: BPOTBEB1, amount: '12.50', currency: EUR, purpose: CHAR, remittance: Urgency fund }
+                output: { format: png, size: 512 }
+            jpeg:
+              summary: JPEG with flattened transparency
+              value:
+                content: { type: url, value: { url: https://example.com } }
+                style: { transparentBackground: true, moduleShape: dots, finderFrameShape: circle, finderCenterShape: circle }
+                output: { format: jpeg, size: 800, jpegQuality: 85, jpegBackground: '#F8FAFC' }
+            svgCaption:
+              summary: SVG with frame and caption
+              value:
+                content: { type: url, value: { url: https://example.com/menu } }
+                style:
+                  moduleShape: extra-rounded
+                  layout:
+                    frame: { enabled: true, color: '#2563EB', radius: 64, thickness: 60 }
+                    caption: { enabled: true, text: Scan for the menu, fontSize: 64, fontWeight: 700, align: center, color: '#FFFFFF', position: bottom, gap: 24 }
+                output: { format: svg, filename: menu }
+  responses:
+    BadRequest:
+      description: Validation failed (schema, logo or dimensions).
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            error:
+              code: VALIDATION
+              message: The request is invalid.
+              issues: [{ path: output.format, message: 'Invalid option: expected one of "svg"|"png"|"jpeg"' }]
+    Unauthorized:
+      description: Bearer token missing or invalid.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    TooLarge:
+      description: Request body exceeds the size limit.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    UnsupportedMedia:
+      description: Content-Type is not application/json.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Capacity:
+      description: The payload does not fit into a QR code with the requested settings.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            error: { code: CAPACITY, message: 'The content is 3000 bytes but level H holds at most 1273 bytes. Shorten the content or lower the error correction level.' }
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string, enum: [VALIDATION, PAYLOAD, CAPACITY, LOGO, SIZE_TOO_LARGE, PAYLOAD_TOO_LARGE, INVALID_JSON, EMPTY_BODY, UNSUPPORTED_MEDIA_TYPE, UNAUTHORIZED, NOT_FOUND, METHOD_NOT_ALLOWED, FEATURE_DISABLED, CONFLICT, INTERNAL] }
+            message: { type: string }
+            issues:
+              type: array
+              items:
+                type: object
+                properties:
+                  path: { type: string, example: content.value.url }
+                  message: { type: string }
+    Health:
+      type: object
+      properties:
+        status: { type: string, const: ok }
+        name: { type: string }
+        version: { type: string }
+        commit: { type: string }
+        buildTime: { type: string, format: date-time }
+        api: { type: object, properties: { version: { type: string }, openapi: { type: string } } }
+        features: { type: object, properties: { dynamicQr: { type: boolean }, apiTokenRequired: { type: boolean } } }
+        limits: { type: object, properties: { maxRequestBodyBytes: { type: integer }, maxRasterSize: { type: integer }, maxPayloadChars: { type: integer } } }
+    GenerateRequest:
+      type: object
+      additionalProperties: false
+      required: [content]
+      description: The authoritative machine-readable schema is served by GET /api/v1/schema.
+      properties:
+        content: { $ref: '#/components/schemas/Content' }
+        qr: { $ref: '#/components/schemas/QrOptions' }
+        style: { $ref: '#/components/schemas/Style' }
+        output: { $ref: '#/components/schemas/Output' }
+    Content:
+      type: object
+      required: [type, value]
+      description: Discriminated by `type`. See GET /api/v1/schema for the exact per-type value schema.
+      properties:
+        type:
+          type: string
+          enum: [text, url, email, phone, sms, whatsapp, wifi, vcard, mecard, event, geo, epc, bitcoin, ethereum, otpauth, social, applink, customuri, json, raw]
+        value:
+          type: object
+          description: Fields of the selected type.
+      examples:
+        - { type: url, value: { url: https://example.com } }
+        - { type: wifi, value: { ssid: Cafe Guest, password: 'latte;art', encryption: WPA } }
+        - { type: geo, value: { latitude: 48.858844, longitude: 2.294351, label: Eiffel Tower } }
+    QrOptions:
+      type: object
+      additionalProperties: false
+      properties:
+        errorCorrection: { type: string, enum: [L, M, Q, H], default: M }
+        version:
+          oneOf: [{ type: string, const: auto }, { type: integer, minimum: 1, maximum: 40 }]
+          default: auto
+        mask:
+          oneOf: [{ type: string, const: auto }, { type: integer, minimum: 0, maximum: 7 }]
+          default: auto
+        boostErrorCorrection: { type: boolean, default: true }
+        marginModules: { type: integer, minimum: 0, maximum: 20, default: 4, description: Quiet zone width in modules. }
+    Style:
+      type: object
+      description: Partial style; omitted fields use defaults. Design units are relative to a 1000-unit QR square.
+      properties:
+        moduleShape: { type: string, enum: [square, rounded, dots, extra-rounded, diamond, classy, classy-rounded, custom], default: square }
+        moduleScale: { type: number, minimum: 0.7, maximum: 1, default: 1 }
+        customModule:
+          type: object
+          properties:
+            cornerRadius: { type: number, minimum: 0, maximum: 0.5 }
+            connected: { type: boolean }
+        finderFrameShape: { type: string, enum: [square, rounded, extra-rounded, circle, dots], default: square }
+        finderCenterShape: { type: string, enum: [square, rounded, circle, diamond], default: square }
+        foreground: { type: string, pattern: '^#[0-9a-fA-F]{6}$', default: '#0F172A' }
+        background: { type: string, pattern: '^#[0-9a-fA-F]{6}$', default: '#FFFFFF' }
+        transparentBackground: { type: boolean, default: false }
+        finderColors:
+          type: object
+          properties:
+            enabled: { type: boolean }
+            frame: { type: string }
+            center: { type: string }
+        gradient:
+          type: object
+          properties:
+            enabled: { type: boolean }
+            type: { type: string, enum: [linear, radial] }
+            angle: { type: number, minimum: 0, maximum: 360 }
+            stops:
+              type: array
+              minItems: 2
+              maxItems: 6
+              items:
+                type: object
+                properties:
+                  offset: { type: number, minimum: 0, maximum: 1 }
+                  color: { type: string }
+            target: { type: string, enum: [modules, all] }
+        logo:
+          type: object
+          properties:
+            enabled: { type: boolean }
+            dataUrl: { type: string, description: 'data:image/(png|jpeg|webp|svg+xml);base64,… (max 1 MB, SVG is sanitized)' }
+            scale: { type: number, minimum: 0.05, maximum: 0.4 }
+            padding: { type: number, minimum: 0, maximum: 4 }
+            cornerRadius: { type: number, minimum: 0, maximum: 0.5 }
+            backplate:
+              type: object
+              properties:
+                enabled: { type: boolean }
+                color: { type: string }
+                cornerRadius: { type: number }
+            clearModules: { type: boolean }
+        layout:
+          type: object
+          properties:
+            padding: { type: number, minimum: 0, maximum: 300 }
+            cornerRadius: { type: number, minimum: 0, maximum: 300 }
+            border:
+              type: object
+              properties:
+                enabled: { type: boolean }
+                width: { type: number, minimum: 1, maximum: 80 }
+                color: { type: string }
+                radius: { type: number, minimum: 0, maximum: 300 }
+            frame:
+              type: object
+              properties:
+                enabled: { type: boolean }
+                color: { type: string }
+                radius: { type: number }
+                thickness: { type: number, minimum: 10, maximum: 200 }
+            caption:
+              type: object
+              properties:
+                enabled: { type: boolean }
+                text: { type: string, maxLength: 80 }
+                fontSize: { type: number, minimum: 20, maximum: 200 }
+                fontWeight: { type: integer, enum: [400, 500, 600, 700] }
+                align: { type: string, enum: [left, center, right] }
+                letterSpacing: { type: number, minimum: -5, maximum: 30 }
+                color: { type: string }
+                position: { type: string, enum: [top, bottom] }
+                gap: { type: number, minimum: 0, maximum: 150 }
+    Output:
+      type: object
+      additionalProperties: false
+      properties:
+        format: { type: string, enum: [svg, png, jpeg], default: png }
+        size: { type: integer, minimum: 128, maximum: 4096, default: 1024, description: Image width in pixels; height follows the design. }
+        jpegQuality: { type: integer, minimum: 1, maximum: 100, default: 90 }
+        jpegBackground: { type: string, default: '#FFFFFF', description: JPEG has no alpha; transparent designs are flattened onto this colour. }
+        filename: { type: string, maxLength: 120, description: Sanitized; the real extension is appended. }
+    ValidateResponse:
+      type: object
+      properties:
+        ok: { type: boolean, const: true }
+        payload: { type: string, description: Exact text encoded in the symbol. }
+        qr:
+          type: object
+          properties:
+            version: { type: integer }
+            matrixSize: { type: integer }
+            errorCorrection: { type: string, enum: [L, M, Q, H] }
+            mask: { type: integer }
+            byteLength: { type: integer }
+            charLength: { type: integer }
+            capacityUsedPercent: { type: number }
+            remainingBytes: { type: integer }
+            marginModules: { type: integer }
+        reliability:
+          type: object
+          properties:
+            status: { type: string, enum: [excellent, good, risky, invalid] }
+            score: { type: integer }
+            warnings:
+              type: array
+              items:
+                type: object
+                properties:
+                  id: { type: string }
+                  severity: { type: string, enum: [info, warning, critical] }
+                  message: { type: string }
+                  hint: { type: string }
+        normalized:
+          type: object
+          properties:
+            content: { $ref: '#/components/schemas/Content' }
+            qr: { $ref: '#/components/schemas/QrOptions' }
+            style: { $ref: '#/components/schemas/Style' }
+            output: { $ref: '#/components/schemas/Output' }
+        image:
+          type: object
+          properties:
+            width: { type: integer }
+            height: { type: integer }
+            mimeType: { type: string }
+            filename: { type: string }
+    DynamicLinkInput:
+      type: object
+      required: [destination]
+      properties:
+        code: { type: string, pattern: '^[A-Za-z0-9_-]{4,32}$' }
+        destination: { type: string, format: uri }
+        label: { type: string, maxLength: 120 }
+        enabled: { type: boolean, default: true }
+        expiresAt: { type: [string, 'null'], format: date-time }
+        maxScans: { type: [integer, 'null'], minimum: 1 }
+    DynamicLinkPatch:
+      type: object
+      properties:
+        destination: { type: string, format: uri }
+        label: { type: string }
+        enabled: { type: boolean }
+        expiresAt: { type: [string, 'null'], format: date-time }
+        maxScans: { type: [integer, 'null'] }
+    DynamicLink:
+      type: object
+      properties:
+        code: { type: string }
+        shortUrl: { type: string, format: uri }
+        destination: { type: string, format: uri }
+        label: { type: [string, 'null'] }
+        enabled: { type: boolean }
+        expiresAt: { type: [string, 'null'], format: date-time }
+        maxScans: { type: [integer, 'null'] }
+        scanCount: { type: integer }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }

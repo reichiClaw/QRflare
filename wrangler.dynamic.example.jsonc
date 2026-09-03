@@ -1,0 +1,39 @@
+/**
+ * Example configuration for the OPTIONAL dynamic QR module.
+ *
+ * Copy the `d1_databases` block and the two `vars` into your wrangler.jsonc
+ * (or use this file directly with `wrangler --config wrangler.dynamic.example.jsonc`).
+ *
+ * 1. npx wrangler d1 create edgeqr-dynamic          → note the database_id
+ * 2. paste database_id below
+ * 3. npx wrangler secret put DYNAMIC_ADMIN_TOKEN   → choose a long random token
+ * 4. npm run deploy:dynamic                        → applies migrations, then deploys
+ *
+ * The standard `npm run deploy` never requires any of this.
+ */
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "edgeqr-studio",
+  "main": "src/worker/index.ts",
+  "compatibility_date": "2026-09-03",
+  "assets": {
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*", "/r/*"],
+    "binding": "ASSETS",
+  },
+  "observability": { "enabled": true, "head_sampling_rate": 0.1 },
+  "vars": {
+    "APP_NAME": "EdgeQR Studio",
+    "CORS_ALLOWED_ORIGINS": "",
+    "MAX_RASTER_SIZE": "4096",
+    "DYNAMIC_QR_ENABLED": "true",
+  },
+  "d1_databases": [
+    {
+      "binding": "DYNAMIC_DB",
+      "database_name": "edgeqr-dynamic",
+      "database_id": "REPLACE-WITH-YOUR-D1-DATABASE-ID",
+      "migrations_dir": "migrations",
+    },
+  ],
+}

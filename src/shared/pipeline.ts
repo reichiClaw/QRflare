@@ -6,16 +6,30 @@
  *
  * Nothing in here touches the DOM, Canvas or Node APIs.
  */
-import { GenerateRequestSchema, MAX_PAYLOAD_CHARS, type GenerateRequestInput } from './api/schemas';
+import { GenerateRequestSchema, MAX_PAYLOAD_CHARS } from './api/schemas';
 import { buildPayload, type PayloadIssue } from './content/builders';
 import type { Content } from './content/schemas';
 import { getContentMeta } from './content/registry';
-import { encodeQr, QrEncodeError, utf8ByteLength, codePointLength, type EncodeResult, type QrOptions } from './qr/encode';
+import {
+  encodeQr,
+  QrEncodeError,
+  utf8ByteLength,
+  codePointLength,
+  type EncodeResult,
+  type QrOptions,
+} from './qr/encode';
 import { evaluateReliability, type ReliabilityReport } from './quality/reliability';
 import { renderSvg, type RenderResult } from './render/svg';
 import { DataUrlError, validateLogoDataUrl } from './security/data-url';
 import { buildDownloadName } from './security/filename';
-import { QrOptionsSchema, resolveStyle, OutputSchema, type Output, type Style, MIME_TYPES } from './style/schema';
+import {
+  QrOptionsSchema,
+  resolveStyle,
+  OutputSchema,
+  type Output,
+  type Style,
+  MIME_TYPES,
+} from './style/schema';
 
 export interface Prepared {
   ok: true;
@@ -51,10 +65,15 @@ function zodIssues(error: { issues: Array<{ path: PropertyKey[]; message: string
  * `sizeOverride` lets the UI render preview SVGs at a display size without
  * changing the export size stored in `output`.
  */
-export function prepare(request: GenerateRequestInput | unknown, options: { sizeOverride?: number } = {}): PrepareResult {
+export function prepare(request: unknown, options: { sizeOverride?: number } = {}): PrepareResult {
   const parsed = GenerateRequestSchema.safeParse(request);
   if (!parsed.success) {
-    return { ok: false, code: 'VALIDATION', message: 'The request is invalid.', issues: zodIssues(parsed.error) };
+    return {
+      ok: false,
+      code: 'VALIDATION',
+      message: 'The request is invalid.',
+      issues: zodIssues(parsed.error),
+    };
   }
   const req = parsed.data;
 
@@ -64,7 +83,12 @@ export function prepare(request: GenerateRequestInput | unknown, options: { size
     style = resolveStyle(req.style ?? {});
   } catch (error) {
     const issues = error && typeof error === 'object' && 'issues' in error ? zodIssues(error as never) : [];
-    return { ok: false, code: 'VALIDATION', message: 'The style is invalid.', issues: issues.map((i) => ({ ...i, path: `style.${i.path}` })) };
+    return {
+      ok: false,
+      code: 'VALIDATION',
+      message: 'The style is invalid.',
+      issues: issues.map((i) => ({ ...i, path: `style.${i.path}` })),
+    };
   }
   const output = OutputSchema.parse(req.output ?? {});
 
@@ -77,7 +101,12 @@ export function prepare(request: GenerateRequestInput | unknown, options: { size
         ok: false,
         code: 'LOGO',
         message: error instanceof DataUrlError ? error.message : 'The logo could not be processed.',
-        issues: [{ path: 'style.logo.dataUrl', message: error instanceof DataUrlError ? error.message : 'Invalid logo.' }],
+        issues: [
+          {
+            path: 'style.logo.dataUrl',
+            message: error instanceof DataUrlError ? error.message : 'Invalid logo.',
+          },
+        ],
       };
     }
   }
@@ -105,7 +134,12 @@ export function prepare(request: GenerateRequestInput | unknown, options: { size
     encode = encodeQr(built.payload, qr);
   } catch (error) {
     if (error instanceof QrEncodeError) {
-      return { ok: false, code: 'CAPACITY', message: error.message, issues: [{ path: 'content', message: error.message }] };
+      return {
+        ok: false,
+        code: 'CAPACITY',
+        message: error.message,
+        issues: [{ path: 'content', message: error.message }],
+      };
     }
     throw error;
   }
@@ -129,6 +163,7 @@ export function prepare(request: GenerateRequestInput | unknown, options: { size
     logoClamped: render.logoClamped,
     payloadBytes: encode.byteLength,
     payloadChars: encode.charLength,
+    forcedVersion: qr.version !== 'auto',
   });
 
   return {

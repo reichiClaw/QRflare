@@ -2,7 +2,13 @@
  * /api/* handlers.
  */
 import { branding } from '../config/branding';
-import { MAX_PAYLOAD_CHARS, MAX_REQUEST_BODY_BYTES, requestJsonSchema, type HealthResponse, type ValidateResponse } from '@shared/api/schemas';
+import {
+  MAX_PAYLOAD_CHARS,
+  MAX_REQUEST_BODY_BYTES,
+  requestJsonSchema,
+  type HealthResponse,
+  type ValidateResponse,
+} from '@shared/api/schemas';
 import { prepare, type Prepared } from '@shared/pipeline';
 import { contentDisposition } from '@shared/security/filename';
 import { MIME_TYPES } from '@shared/style/schema';
@@ -52,9 +58,12 @@ async function prepareFromRequest(request: Request, env: Env): Promise<Prepared>
   }
   const limit = maxRasterSize(env);
   if (result.output.format !== 'svg' && result.output.size > limit) {
-    throw new HttpError(400, 'SIZE_TOO_LARGE', `This deployment renders raster images up to ${limit} px wide.`, [
-      { path: 'output.size', message: `Must be ≤ ${limit}.` },
-    ]);
+    throw new HttpError(
+      400,
+      'SIZE_TOO_LARGE',
+      `This deployment renders raster images up to ${limit} px wide.`,
+      [{ path: 'output.size', message: `Must be ≤ ${limit}.` }],
+    );
   }
   return result;
 }
@@ -79,7 +88,11 @@ export async function handleValidate(request: Request, env: Env): Promise<Respon
       status: prepared.reliability.status,
       score: prepared.reliability.score,
       warnings: [
-        ...prepared.contentWarnings.map((message, i) => ({ id: `content-${i}`, severity: 'info' as const, message })),
+        ...prepared.contentWarnings.map((message, i) => ({
+          id: `content-${i}`,
+          severity: 'info' as const,
+          message,
+        })),
         ...prepared.reliability.warnings.map((w) => ({
           id: w.id,
           severity: w.severity,

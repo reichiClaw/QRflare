@@ -15,7 +15,12 @@ import { decodeSvg, rasterize } from '../helpers/decode';
 const TEST_LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="#2563EB"/><circle cx="50" cy="50" r="25" fill="#fff"/></svg>`;
 const TEST_LOGO_DATA_URL = `data:image/svg+xml;base64,${base64Encode(new TextEncoder().encode(TEST_LOGO_SVG))}`;
 
-async function roundTrip(payload: string, styleOverride: unknown = {}, ec: 'L' | 'M' | 'Q' | 'H' = 'M', width = 600) {
+async function roundTrip(
+  payload: string,
+  styleOverride: unknown = {},
+  ec: 'L' | 'M' | 'Q' | 'H' = 'M',
+  width = 600,
+) {
   const encoded = encodeQr(payload, { errorCorrection: ec, boostErrorCorrection: false });
   const style = resolveStyle(styleOverride);
   const render = renderSvg({ matrix: encoded.matrix, marginModules: 4, style, size: width });
@@ -47,14 +52,26 @@ describe('round trip: encode → render → independent decode', () => {
     expect((await roundTrip('HELLO WORLD $%*+-./:')).decoded).toBe('HELLO WORLD $%*+-./:');
   });
 
-  it.each(BUILT_IN_PRESETS.map((p) => [p.name, p] as const))('decodes with preset "%s"', async (_name, preset) => {
-    const payload = 'https://edgeqr.example/presets';
-    const { decoded } = await roundTrip(payload, preset.style, 'Q');
-    expect(decoded).toBe(payload);
-  });
+  it.each(BUILT_IN_PRESETS.map((p) => [p.name, p] as const))(
+    'decodes with preset "%s"',
+    async (_name, preset) => {
+      const payload = 'https://edgeqr.example/presets';
+      const { decoded } = await roundTrip(payload, preset.style, 'Q');
+      expect(decoded).toBe(payload);
+    },
+  );
 
   it('decodes every module shape and finder combination', async () => {
-    const shapes = ['square', 'rounded', 'dots', 'extra-rounded', 'diamond', 'classy', 'classy-rounded', 'custom'] as const;
+    const shapes = [
+      'square',
+      'rounded',
+      'dots',
+      'extra-rounded',
+      'diamond',
+      'classy',
+      'classy-rounded',
+      'custom',
+    ] as const;
     const frames = ['square', 'rounded', 'extra-rounded', 'circle', 'dots'] as const;
     const centers = ['square', 'rounded', 'circle', 'diamond'] as const;
     for (const [i, shape] of shapes.entries()) {
@@ -62,7 +79,12 @@ describe('round trip: encode → render → independent decode', () => {
       const center = centers[i % centers.length];
       const { decoded } = await roundTrip(
         `shape:${shape}`,
-        { moduleShape: shape, finderFrameShape: frame, finderCenterShape: center, customModule: { cornerRadius: 0.4, connected: true } },
+        {
+          moduleShape: shape,
+          finderFrameShape: frame,
+          finderCenterShape: center,
+          customModule: { cornerRadius: 0.4, connected: true },
+        },
         'Q',
       );
       expect(decoded, `${shape}/${frame}/${center}`).toBe(`shape:${shape}`);
@@ -73,7 +95,10 @@ describe('round trip: encode → render → independent decode', () => {
     const payload = 'https://example.com/with-logo';
     const { decoded, render } = await roundTrip(
       payload,
-      { ...DEFAULT_STYLE, logo: { ...DEFAULT_STYLE.logo, enabled: true, dataUrl: TEST_LOGO_DATA_URL, scale: 0.22 } },
+      {
+        ...DEFAULT_STYLE,
+        logo: { ...DEFAULT_STYLE.logo, enabled: true, dataUrl: TEST_LOGO_DATA_URL, scale: 0.22 },
+      },
       'H',
     );
     expect(render.logoRect).not.toBeNull();
@@ -87,13 +112,32 @@ describe('round trip: encode → render → independent decode', () => {
       payload,
       {
         moduleShape: 'extra-rounded',
-        gradient: { enabled: true, type: 'linear', angle: 30, stops: [{ offset: 0, color: '#1E3A8A' }, { offset: 1, color: '#065F46' }], target: 'all' },
+        gradient: {
+          enabled: true,
+          type: 'linear',
+          angle: 30,
+          stops: [
+            { offset: 0, color: '#1E3A8A' },
+            { offset: 1, color: '#065F46' },
+          ],
+          target: 'all',
+        },
         layout: {
           padding: 20,
           cornerRadius: 30,
           border: { enabled: true, width: 12, color: '#111827', radius: 30 },
           frame: { enabled: true, color: '#DBEAFE', radius: 40, thickness: 50 },
-          caption: { enabled: true, text: 'Scan me', fontSize: 64, fontWeight: 700, align: 'center', letterSpacing: 1, color: '#111827', position: 'bottom', gap: 24 },
+          caption: {
+            enabled: true,
+            text: 'Scan me',
+            fontSize: 64,
+            fontWeight: 700,
+            align: 'center',
+            letterSpacing: 1,
+            color: '#111827',
+            position: 'bottom',
+            gap: 24,
+          },
         },
       },
       'M',
@@ -109,7 +153,12 @@ describe('round trip: encode → render → independent decode', () => {
   });
 
   it('decodes forced version and manual mask', async () => {
-    const encoded = encodeQr('mask test', { errorCorrection: 'L', version: 5, mask: 3, boostErrorCorrection: false });
+    const encoded = encodeQr('mask test', {
+      errorCorrection: 'L',
+      version: 5,
+      mask: 3,
+      boostErrorCorrection: false,
+    });
     expect(encoded.version).toBe(5);
     expect(encoded.mask).toBe(3);
     const render = renderSvg({ matrix: encoded.matrix, marginModules: 4, style: DEFAULT_STYLE, size: 500 });
@@ -117,8 +166,18 @@ describe('round trip: encode → render → independent decode', () => {
   });
 
   it('is deterministic for identical input', () => {
-    const a = renderSvg({ matrix: encodeQr('same', {}).matrix, marginModules: 4, style: DEFAULT_STYLE, size: 300 });
-    const b = renderSvg({ matrix: encodeQr('same', {}).matrix, marginModules: 4, style: DEFAULT_STYLE, size: 300 });
+    const a = renderSvg({
+      matrix: encodeQr('same', {}).matrix,
+      marginModules: 4,
+      style: DEFAULT_STYLE,
+      size: 300,
+    });
+    const b = renderSvg({
+      matrix: encodeQr('same', {}).matrix,
+      marginModules: 4,
+      style: DEFAULT_STYLE,
+      size: 300,
+    });
     expect(a.svg).toBe(b.svg);
   });
 });
@@ -140,7 +199,10 @@ describe('round trip: every content type example', () => {
 
 describe('rasterized output', () => {
   it('produces a PNG with the requested width', async () => {
-    const result = prepare({ content: { type: 'text', value: { text: 'png' } }, output: { format: 'png', size: 256 } });
+    const result = prepare({
+      content: { type: 'text', value: { text: 'png' } },
+      output: { format: 'png', size: 256 },
+    });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const raster = await rasterize(result.render.svg, 256);

@@ -150,7 +150,10 @@ export function byteModeCapacity(version: number, level: ErrorCorrectionLevel): 
 export function normalizeQrOptions(partial?: Partial<QrOptions>): QrOptions {
   const opts: QrOptions = { ...DEFAULT_QR_OPTIONS, ...partial };
   if (!ERROR_CORRECTION_LEVELS.includes(opts.errorCorrection)) {
-    throw new QrEncodeError('INVALID_OPTIONS', `Unknown error correction level "${String(opts.errorCorrection)}".`);
+    throw new QrEncodeError(
+      'INVALID_OPTIONS',
+      `Unknown error correction level "${String(opts.errorCorrection)}".`,
+    );
   }
   if (opts.version !== 'auto') {
     if (!Number.isInteger(opts.version) || opts.version < MIN_VERSION || opts.version > MAX_VERSION) {
@@ -160,8 +163,15 @@ export function normalizeQrOptions(partial?: Partial<QrOptions>): QrOptions {
   if (opts.mask !== 'auto' && (!Number.isInteger(opts.mask) || opts.mask < 0 || opts.mask > 7)) {
     throw new QrEncodeError('INVALID_OPTIONS', `Mask must be "auto" or an integer from 0 to 7.`);
   }
-  if (!Number.isInteger(opts.marginModules) || opts.marginModules < 0 || opts.marginModules > MAX_MARGIN_MODULES) {
-    throw new QrEncodeError('INVALID_OPTIONS', `Quiet zone must be an integer from 0 to ${MAX_MARGIN_MODULES} modules.`);
+  if (
+    !Number.isInteger(opts.marginModules) ||
+    opts.marginModules < 0 ||
+    opts.marginModules > MAX_MARGIN_MODULES
+  ) {
+    throw new QrEncodeError(
+      'INVALID_OPTIONS',
+      `Quiet zone must be an integer from 0 to ${MAX_MARGIN_MODULES} modules.`,
+    );
   }
   return opts;
 }
@@ -174,7 +184,10 @@ export function normalizeQrOptions(partial?: Partial<QrOptions>): QrOptions {
 export function encodeQr(payload: string, options?: Partial<QrOptions>): EncodeResult {
   const opts = normalizeQrOptions(options);
   if (payload.length === 0) {
-    throw new QrEncodeError('EMPTY_PAYLOAD', 'The payload is empty. Enter some content to generate a QR code.');
+    throw new QrEncodeError(
+      'EMPTY_PAYLOAD',
+      'The payload is empty. Enter some content to generate a QR code.',
+    );
   }
 
   const byteLength = utf8ByteLength(payload);
@@ -186,7 +199,14 @@ export function encodeQr(payload: string, options?: Partial<QrOptions>): EncodeR
 
   let qr: QrCode;
   try {
-    qr = QrCode.encodeSegments(segments, ECC_BY_LEVEL[opts.errorCorrection], minVersion, maxVersion, mask, opts.boostErrorCorrection);
+    qr = QrCode.encodeSegments(
+      segments,
+      ECC_BY_LEVEL[opts.errorCorrection],
+      minVersion,
+      maxVersion,
+      mask,
+      opts.boostErrorCorrection,
+    );
   } catch (error) {
     if (error instanceof RangeError && /too long/i.test(error.message)) {
       const detail =
@@ -195,7 +215,8 @@ export function encodeQr(payload: string, options?: Partial<QrOptions>): EncodeR
           : `The content does not fit in QR version ${opts.version} at level ${opts.errorCorrection} (${byteModeCapacity(opts.version, opts.errorCorrection)} bytes max). Choose a larger version or "auto".`;
       throw new QrEncodeError('CAPACITY_EXCEEDED', detail, {
         byteLength,
-        maxBytes: opts.version === 'auto' ? maxBytesAtLevel : byteModeCapacity(opts.version, opts.errorCorrection),
+        maxBytes:
+          opts.version === 'auto' ? maxBytesAtLevel : byteModeCapacity(opts.version, opts.errorCorrection),
         level: opts.errorCorrection,
       });
     }

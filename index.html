@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#F8FAFC" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0B1220" />
+    <meta
+      name="description"
+      content="EdgeQR Studio – self-hosted, privacy-first QR code generator with rich styling, logos, batch export and an HTTP API."
+    />
+    <meta name="referrer" content="no-referrer" />
+    <title>EdgeQR Studio – Private QR code generator</title>
+    <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <script src="/theme-init.js"></script>
+  </head>
+  <body class="h-full bg-surface text-fg antialiased">
+    <div id="root" class="h-full"></div>
+    <noscript>
+      <div style="padding: 2rem; font-family: system-ui, sans-serif">
+        EdgeQR Studio generates QR codes locally in your browser and requires JavaScript.
+      </div>
+    </noscript>
+    <script type="module" src="/src/app/main.tsx"></script>
+  </body>
+</html>

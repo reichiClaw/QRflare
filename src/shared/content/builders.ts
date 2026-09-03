@@ -7,7 +7,7 @@
  * EIP-681, Key Uri Format for otpauth, the WIFI: scheme used by ZXing/iOS/Android).
  */
 import { MAX_PAYLOAD_BYTES, utf8ByteLength } from '../qr/encode';
-import { ContentSchema, type Content, type ContentInput, type ContentType, type ContentValue } from './schemas';
+import { ContentSchema, type Content, type ContentType, type ContentValue } from './schemas';
 import {
   buildQuery,
   decimalToUnits,
@@ -34,15 +34,17 @@ export interface PayloadIssue {
 }
 
 export type PayloadResult =
-  | { ok: true; payload: string; warnings: string[]; content: Content }
-  | { ok: false; issues: PayloadIssue[] };
+  { ok: true; payload: string; warnings: string[]; content: Content } | { ok: false; issues: PayloadIssue[] };
 
 export interface BuildContext {
   /** Optional capacity hint (bytes) used to decide whether optional heavy fields such as vCard photos fit. */
   maxBytes?: number;
 }
 
-type Builder<T extends ContentType> = (value: ContentValue<T>, ctx: BuildContext) => { payload: string; warnings?: string[] };
+type Builder<T extends ContentType> = (
+  value: ContentValue<T>,
+  ctx: BuildContext,
+) => { payload: string; warnings?: string[] };
 
 const CRLF = '\r\n';
 
@@ -58,7 +60,8 @@ const buildUrl: Builder<'url'> = (v) => {
   const normalized = normalizeUrl(v.url, v.autoHttps);
   if (normalized === null) throw new Error('Invalid URL');
   const warnings: string[] = [];
-  if (/^http:/i.test(normalized)) warnings.push('The URL uses plain http://. Prefer https:// when available.');
+  if (/^http:/i.test(normalized))
+    warnings.push('The URL uses plain http://. Prefer https:// when available.');
   return { payload: normalized, warnings };
 };
 
@@ -122,7 +125,9 @@ const buildVCard: Builder<'vcard'> = (v, ctx) => {
   for (const email of v.emails) {
     if (!email.address) continue;
     const type = email.type === 'OTHER' ? '' : email.type;
-    lines.push(`EMAIL${type ? `;TYPE=${is4 ? type.toLowerCase() : type}` : ''}:${escapeVText(email.address)}`);
+    lines.push(
+      `EMAIL${type ? `;TYPE=${is4 ? type.toLowerCase() : type}` : ''}:${escapeVText(email.address)}`,
+    );
   }
   if (v.website) lines.push(`URL:${escapeVText(normalizeUrl(v.website) ?? v.website)}`);
   if (v.street || v.city || v.postalCode || v.region || v.country) {
@@ -182,7 +187,11 @@ const buildEvent: Builder<'event'> = (v) => {
     const endDate = toICalDate(endSource);
     if (endDate) {
       // DTEND is exclusive for all-day events, so add one day.
-      const [y, m, d] = [Number(endDate.slice(0, 4)), Number(endDate.slice(4, 6)), Number(endDate.slice(6, 8))];
+      const [y, m, d] = [
+        Number(endDate.slice(0, 4)),
+        Number(endDate.slice(4, 6)),
+        Number(endDate.slice(6, 8)),
+      ];
       const next = new Date(Date.UTC(y, m - 1, d + 1));
       dtEnd = `DTEND;VALUE=DATE:${toICalUtc(next).slice(0, 8)}`;
     }
@@ -259,7 +268,8 @@ const buildEpc: Builder<'epc'> = (v) => {
   while (lines.length > 7 && lines[lines.length - 1] === '') lines.pop();
   const payload = lines.join('\n');
   const warnings: string[] = [];
-  if (utf8ByteLength(payload) > 331) warnings.push('EPC payloads must stay below 331 bytes; shorten the text fields.');
+  if (utf8ByteLength(payload) > 331)
+    warnings.push('EPC payloads must stay below 331 bytes; shorten the text fields.');
   return { payload, warnings };
 };
 
@@ -288,7 +298,9 @@ const buildEthereum: Builder<'ethereum'> = (v) => {
 
 const buildOtpAuth: Builder<'otpauth'> = (v) => {
   const issuer = v.issuer.trim();
-  const label = issuer ? `${encodePathSegment(issuer)}:${encodePathSegment(v.account)}` : encodePathSegment(v.account);
+  const label = issuer
+    ? `${encodePathSegment(issuer)}:${encodePathSegment(v.account)}`
+    : encodePathSegment(v.account);
   const params: Array<[string, string | undefined]> = [
     ['secret', normalizeBase32(v.secret)],
     ['issuer', issuer || undefined],
@@ -394,7 +406,7 @@ const BUILDERS: { [K in ContentType]: Builder<K> } = {
  * Validates `content` with the shared schema and builds the payload. Never
  * throws for user errors – validation problems are returned as issues.
  */
-export function buildPayload(content: ContentInput | unknown, ctx: BuildContext = {}): PayloadResult {
+export function buildPayload(content: unknown, ctx: BuildContext = {}): PayloadResult {
   const parsed = ContentSchema.safeParse(content);
   if (!parsed.success) {
     return {
@@ -408,12 +420,14 @@ export function buildPayload(content: ContentInput | unknown, ctx: BuildContext 
   const value = parsed.data;
   const builder = BUILDERS[value.type] as Builder<ContentType>;
   try {
-    const built = builder(value.value as never, ctx);
+    const built = builder(value.value, ctx);
     return { ok: true, payload: built.payload, warnings: built.warnings ?? [], content: value };
   } catch (error) {
     return {
       ok: false,
-      issues: [{ path: 'value', message: error instanceof Error ? error.message : 'Could not build the payload.' }],
+      issues: [
+        { path: 'value', message: error instanceof Error ? error.message : 'Could not build the payload.' },
+      ],
     };
   }
 }

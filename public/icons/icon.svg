@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="EdgeQR Studio">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2563EB"/>
+      <stop offset="1" stop-color="#14B8A6"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <g fill="#FFFFFF">
+    <path d="M120 120h112v112H120zm28 28v56h56v-56z" fill-rule="evenodd"/>
+    <path d="M280 120h112v112H280zm28 28v56h56v-56z" fill-rule="evenodd"/>
+    <path d="M120 280h112v112H120zm28 28v56h56v-56z" fill-rule="evenodd"/>
+    <rect x="160" y="160" width="32" height="32" rx="6"/>
+    <rect x="320" y="160" width="32" height="32" rx="6"/>
+    <rect x="160" y="320" width="32" height="32" rx="6"/>
+    <rect x="280" y="280" width="36" height="36" rx="8"/>
+    <rect x="356" y="280" width="36" height="36" rx="8"/>
+    <rect x="318" y="318" width="36" height="36" rx="8"/>
+    <rect x="280" y="356" width="36" height="36" rx="8"/>
+    <rect x="356" y="356" width="36" height="36" rx="8"/>
+  </g>
+</svg>

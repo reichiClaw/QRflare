@@ -6,6 +6,10 @@ import { base64Encode } from '@shared/security/data-url';
 
 const BASE = 'https://edgeqr.test';
 
+function readJson<T>(res: Response): Promise<T> {
+  return res.json<T>();
+}
+
 function post(path: string, body: unknown, init: RequestInit = {}) {
   return SELF.fetch(`${BASE}${path}`, {
     method: 'POST',
@@ -26,7 +30,7 @@ describe('GET /api/health', () => {
   it('returns status, version and limits without secrets', async () => {
     const res = await SELF.fetch(`${BASE}/api/health`);
     expect(res.status).toBe(200);
-    const body = (await res.json()) as Record<string, unknown>;
+    const body = await readJson<Record<string, unknown>>(res);
     expect(body.status).toBe('ok');
     expect(body.version).toBe('test');
     expect((body.api as Record<string, string>).version).toBe('v1');
@@ -49,7 +53,9 @@ describe('GET /api/v1/schema', () => {
   it('returns the JSON schema and the OpenAPI reference', async () => {
     const res = await SELF.fetch(`${BASE}/api/v1/schema`);
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { openapi: string; requestSchema: { properties: Record<string, unknown> } };
+    const body = await readJson<{ openapi: string; requestSchema: { properties: Record<string, unknown> } }>(
+      res,
+    );
     expect(body.openapi).toBe('/openapi.yaml');
     expect(Object.keys(body.requestSchema.properties)).toEqual(['content', 'qr', 'style', 'output']);
   });
@@ -62,13 +68,13 @@ describe('POST /api/v1/validate', () => {
       style: { foreground: '#CCCCCC' },
     });
     expect(res.status).toBe(200);
-    const body = (await res.json()) as {
+    const body = await readJson<{
       ok: boolean;
       payload: string;
       qr: { version: number; errorCorrection: string };
       reliability: { status: string; warnings: Array<{ id: string }> };
       normalized: { style: { foreground: string } };
-    };
+    }>(res);
     expect(body.ok).toBe(true);
     expect(body.payload).toBe('WIFI:T:WPA;S:Cafe Guest;P:latte\\;art;;');
     expect(body.qr.version).toBeGreaterThanOrEqual(1);
@@ -81,7 +87,7 @@ describe('POST /api/v1/validate', () => {
       content: { type: 'email', value: { to: 'not-an-email', subject: 'top secret payload text' } },
     });
     expect(res.status).toBe(400);
-    const body = (await res.json()) as { error: { code: string; issues: Array<{ path: string }> } };
+    const body = await readJson<{ error: { code: string; issues: Array<{ path: string }> } }>(res);
     expect(body.error.code).toBe('VALIDATION');
     expect(body.error.issues.some((i) => i.path === 'content.value.to')).toBe(true);
     expect(JSON.stringify(body)).not.toContain('top secret payload text');
@@ -131,7 +137,17 @@ describe('POST /api/v1/generate', () => {
       ...urlRequest({ format: 'png', size: 300 }),
       style: {
         layout: {
-          caption: { enabled: true, text: 'Scan me', fontSize: 80, fontWeight: 700, align: 'center', letterSpacing: 0, color: '#000000', position: 'bottom', gap: 20 },
+          caption: {
+            enabled: true,
+            text: 'Scan me',
+            fontSize: 80,
+            fontWeight: 700,
+            align: 'center',
+            letterSpacing: 0,
+            color: '#000000',
+            position: 'bottom',
+            gap: 20,
+          },
         },
       },
     });
@@ -145,7 +161,7 @@ describe('POST /api/v1/generate', () => {
   it('rejects unsupported output formats', async () => {
     const res = await post('/api/v1/generate', urlRequest({ format: 'gif' }));
     expect(res.status).toBe(400);
-    const body = (await res.json()) as { error: { code: string; issues: Array<{ path: string }> } };
+    const body = await readJson<{ error: { code: string; issues: Array<{ path: string }> } }>(res);
     expect(body.error.code).toBe('VALIDATION');
     expect(body.error.issues.some((i) => i.path.includes('output.format'))).toBe(true);
   });
@@ -164,13 +180,16 @@ describe('POST /api/v1/generate', () => {
       output: { format: 'svg' },
     });
     expect(res.status).toBe(422);
-    const body = (await res.json()) as { error: { code: string; message: string } };
+    const body = await readJson<{ error: { code: string; message: string } }>(res);
     expect(body.error.code).toBe('CAPACITY');
     expect(body.error.message).not.toContain('xxxxxxxx');
   });
 
   it('rejects oversized request bodies', async () => {
-    const huge = JSON.stringify({ content: { type: 'text', value: { text: 'a' } }, style: { pad: 'x'.repeat(1_700_000) } });
+    const huge = JSON.stringify({
+      content: { type: 'text', value: { text: 'a' } },
+      style: { pad: 'x'.repeat(1_700_000) },
+    });
     const res = await post('/api/v1/generate', huge);
     expect(res.status).toBe(413);
   });
@@ -196,15 +215,24 @@ describe('POST /api/v1/generate', () => {
 
     const mismatch = await post('/api/v1/generate', {
       ...urlRequest({ format: 'svg' }),
-      style: { logo: { enabled: true, dataUrl: `data:image/png;base64,${base64Encode(new TextEncoder().encode(evil))}` } },
+      style: {
+        logo: {
+          enabled: true,
+          dataUrl: `data:image/png;base64,${base64Encode(new TextEncoder().encode(evil))}`,
+        },
+      },
     });
     expect(mismatch.status).toBe(400);
-    const mismatchBody = (await mismatch.json()) as { error: { code: string } };
+    const mismatchBody = await readJson<{ error: { code: string } }>(mismatch);
     expect(mismatchBody.error.code).toBe('LOGO');
   });
 
   it('rejects non-JSON bodies and unknown fields', async () => {
-    const text = await SELF.fetch(`${BASE}/api/v1/generate`, { method: 'POST', body: 'hello', headers: { 'Content-Type': 'text/plain' } });
+    const text = await SELF.fetch(`${BASE}/api/v1/generate`, {
+      method: 'POST',
+      body: 'hello',
+      headers: { 'Content-Type': 'text/plain' },
+    });
     expect(text.status).toBe(415);
     const unknown = await post('/api/v1/generate', { ...urlRequest(), extra: true });
     expect(unknown.status).toBe(400);
@@ -215,7 +243,7 @@ describe('POST /api/v1/generate', () => {
   it('returns 404/405 for unknown routes and methods with the JSON error format', async () => {
     const missing = await SELF.fetch(`${BASE}/api/v1/nope`);
     expect(missing.status).toBe(404);
-    expect(((await missing.json()) as { error: { code: string } }).error.code).toBe('NOT_FOUND');
+    expect((await readJson<{ error: { code: string } }>(missing)).error.code).toBe('NOT_FOUND');
     const wrongMethod = await SELF.fetch(`${BASE}/api/v1/generate`);
     expect(wrongMethod.status).toBe(405);
   });
@@ -225,7 +253,10 @@ describe('CORS', () => {
   it('does not emit CORS headers for unknown origins', async () => {
     const res = await SELF.fetch(`${BASE}/api/health`, { headers: { Origin: 'https://evil.example' } });
     expect(res.headers.get('Access-Control-Allow-Origin')).toBeNull();
-    const preflight = await SELF.fetch(`${BASE}/api/v1/generate`, { method: 'OPTIONS', headers: { Origin: 'https://evil.example' } });
+    const preflight = await SELF.fetch(`${BASE}/api/v1/generate`, {
+      method: 'OPTIONS',
+      headers: { Origin: 'https://evil.example' },
+    });
     expect(preflight.status).toBe(403);
   });
 
@@ -233,7 +264,10 @@ describe('CORS', () => {
     const res = await SELF.fetch(`${BASE}/api/health`, { headers: { Origin: 'https://allowed.example' } });
     expect(res.headers.get('Access-Control-Allow-Origin')).toBe('https://allowed.example');
     expect(res.headers.get('Vary')).toContain('Origin');
-    const preflight = await SELF.fetch(`${BASE}/api/v1/generate`, { method: 'OPTIONS', headers: { Origin: 'https://allowed.example' } });
+    const preflight = await SELF.fetch(`${BASE}/api/v1/generate`, {
+      method: 'OPTIONS',
+      headers: { Origin: 'https://allowed.example' },
+    });
     expect(preflight.status).toBe(204);
     expect(preflight.headers.get('Access-Control-Allow-Methods')).toContain('POST');
   });

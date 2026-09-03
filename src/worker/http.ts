@@ -46,7 +46,11 @@ export function corsContext(request: Request, env: Env): CorsContext {
   return { origin, allowed, sameOrigin: false };
 }
 
-export function applyHeaders(response: Response, cors: CorsContext, extra?: Record<string, string>): Response {
+export function applyHeaders(
+  response: Response,
+  cors: CorsContext,
+  extra?: Record<string, string>,
+): Response {
   const headers = new Headers(response.headers);
   for (const [k, v] of Object.entries(BASE_SECURITY_HEADERS)) headers.set(k, v);
   if (extra) for (const [k, v] of Object.entries(extra)) headers.set(k, v);
@@ -79,7 +83,13 @@ export function json(data: unknown, init: ResponseInit = {}): Response {
 export function errorResponse(error: unknown): Response {
   if (error instanceof HttpError) {
     return json(
-      { error: { code: error.code, message: error.message, ...(error.issues ? { issues: error.issues } : {}) } },
+      {
+        error: {
+          code: error.code,
+          message: error.message,
+          ...(error.issues ? { issues: error.issues } : {}),
+        },
+      },
       { status: error.status },
     );
   }
@@ -95,7 +105,11 @@ export function errorResponse(error: unknown): Response {
 export async function readJsonBody(request: Request, maxBytes: number): Promise<unknown> {
   const contentType = request.headers.get('Content-Type') ?? '';
   if (!/^application\/json\b/i.test(contentType)) {
-    throw new HttpError(415, 'UNSUPPORTED_MEDIA_TYPE', 'Send a JSON body with Content-Type: application/json.');
+    throw new HttpError(
+      415,
+      'UNSUPPORTED_MEDIA_TYPE',
+      'Send a JSON body with Content-Type: application/json.',
+    );
   }
   const declared = Number(request.headers.get('Content-Length') ?? '0');
   if (declared > maxBytes) {
@@ -103,7 +117,7 @@ export async function readJsonBody(request: Request, maxBytes: number): Promise<
   }
   if (!request.body) throw new HttpError(400, 'EMPTY_BODY', 'Request body is empty.');
 
-  const reader = request.body.getReader();
+  const reader = request.body.getReader() as ReadableStreamDefaultReader<Uint8Array>;
   const chunks: Uint8Array[] = [];
   let received = 0;
   for (;;) {

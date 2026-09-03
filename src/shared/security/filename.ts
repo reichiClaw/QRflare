@@ -12,6 +12,7 @@ export function sanitizeFilename(input: string | undefined | null, fallback = 'q
     .replace(/[\u0300-\u036f]/g, '') // strip diacritics
     .replace(/[^A-Za-z0-9._ -]+/g, '-')
     .replace(/\s+/g, '-')
+    .replace(/[-.]*\.[-.]*/g, '.') // collapse runs containing dots (prevents "..")
     .replace(/-{2,}/g, '-')
     .replace(/^[-. ]+|[-. ]+$/g, '')
     .slice(0, 80);
@@ -24,7 +25,11 @@ export function stripImageExtension(name: string): string {
   return name.replace(/\.(svg|png|jpe?g|webp|gif)$/i, '');
 }
 
-export function buildDownloadName(base: string | undefined, format: OutputFormat, fallback = 'qr-code'): string {
+export function buildDownloadName(
+  base: string | undefined,
+  format: OutputFormat,
+  fallback = 'qr-code',
+): string {
   const clean = sanitizeFilename(stripImageExtension(base ?? ''), fallback);
   return `${clean}.${FILE_EXTENSIONS[format]}`;
 }

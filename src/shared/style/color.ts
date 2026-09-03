@@ -40,15 +40,19 @@ export function normalizeHex(value: string): string {
 }
 
 export function rgbToHex({ r, g, b, a }: Rgb): string {
-  const h = (n: number) => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, '0');
+  const h = (n: number) =>
+    Math.max(0, Math.min(255, Math.round(n)))
+      .toString(16)
+      .padStart(2, '0');
   const base = `#${h(r)}${h(g)}${h(b)}`.toUpperCase();
   return a < 1 ? `${base}${h(a * 255).toUpperCase()}` : base;
 }
 
 export function parseRgbString(value: string): Rgb | null {
-  const match = /^rgba?\(\s*(\d{1,3})\s*[, ]\s*(\d{1,3})\s*[, ]\s*(\d{1,3})\s*(?:[,/]\s*([01]?\.?\d*)\s*)?\)$/i.exec(
-    value.trim(),
-  );
+  const match =
+    /^rgba?\(\s*(\d{1,3})\s*[, ]\s*(\d{1,3})\s*[, ]\s*(\d{1,3})\s*(?:[,/]\s*([01]?\.?\d*)\s*)?\)$/i.exec(
+      value.trim(),
+    );
   if (!match) return null;
   const [, r, g, b, a] = match;
   const rgb = { r: Number(r), g: Number(g), b: Number(b), a: a === undefined || a === '' ? 1 : Number(a) };

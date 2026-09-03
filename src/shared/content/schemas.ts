@@ -21,7 +21,6 @@ import {
   splitList,
 } from './utils';
 
-const str = (max = 2000) => z.string().max(max);
 const optStr = (max = 2000) => z.string().max(max).default('');
 
 const phoneField = (label: string) =>
@@ -46,7 +45,10 @@ const localDate = z.string().regex(/^\d{4}-\d{2}-\d{2}/, 'Use the format YYYY-MM
 const dataUrlImage = z
   .string()
   .max(1_500_000)
-  .regex(/^data:image\/(png|jpeg|webp|svg\+xml);base64,[A-Za-z0-9+/]+=*$/, 'Must be a base64 image data URL.');
+  .regex(
+    /^data:image\/(png|jpeg|webp|svg\+xml);base64,[A-Za-z0-9+/]+=*$/,
+    'Must be a base64 image data URL.',
+  );
 
 /* ---------- 1. Plain text ---------- */
 export const TextValueSchema = z
@@ -75,7 +77,10 @@ export const EmailValueSchema = z
       .trim()
       .min(1, 'Recipient is required.')
       .max(500)
-      .refine((v) => splitList(v).length > 0 && splitList(v).every(isValidEmail), 'Enter valid recipient email addresses.'),
+      .refine(
+        (v) => splitList(v).length > 0 && splitList(v).every(isValidEmail),
+        'Enter valid recipient email addresses.',
+      ),
     cc: emailListField('CC'),
     bcc: emailListField('BCC'),
     subject: optStr(500),
@@ -118,10 +123,18 @@ export const WifiValueSchema = z
   .strict()
   .superRefine((v, ctx) => {
     if (v.encryption !== 'nopass' && v.password.length === 0) {
-      ctx.addIssue({ code: 'custom', path: ['password'], message: 'A password is required for protected networks.' });
+      ctx.addIssue({
+        code: 'custom',
+        path: ['password'],
+        message: 'A password is required for protected networks.',
+      });
     }
     if (v.encryption === 'WPA' && v.password.length > 0 && v.password.length < 8) {
-      ctx.addIssue({ code: 'custom', path: ['password'], message: 'WPA passwords need at least 8 characters.' });
+      ctx.addIssue({
+        code: 'custom',
+        path: ['password'],
+        message: 'WPA passwords need at least 8 characters.',
+      });
     }
   });
 
@@ -167,7 +180,11 @@ export const VCardValueSchema = z
   .strict()
   .superRefine((v, ctx) => {
     if (!v.firstName && !v.lastName && !v.displayName && !v.organization) {
-      ctx.addIssue({ code: 'custom', path: ['firstName'], message: 'Enter at least a name or an organization.' });
+      ctx.addIssue({
+        code: 'custom',
+        path: ['firstName'],
+        message: 'Enter at least a name or an organization.',
+      });
     }
     v.phones.forEach((p, i) => {
       if (p.number && !isValidPhoneNumber(p.number)) {
@@ -254,7 +271,10 @@ export const EventValueSchema = z
 /* ---------- 11. Geographic location ---------- */
 export const GeoValueSchema = z
   .object({
-    latitude: z.coerce.number().min(-90, 'Latitude is between -90 and 90.').max(90, 'Latitude is between -90 and 90.'),
+    latitude: z.coerce
+      .number()
+      .min(-90, 'Latitude is between -90 and 90.')
+      .max(90, 'Latitude is between -90 and 90.'),
     longitude: z.coerce
       .number()
       .min(-180, 'Longitude is between -180 and 180.')
@@ -278,7 +298,10 @@ export const EpcValueSchema = z
       'Amount must be between 0.01 and 999999999.99 with at most two decimals.',
     ),
     currency: z.literal('EUR').default('EUR'),
-    purpose: optStr(4).refine((v) => !v || /^[A-Za-z0-9]{4}$/.test(v), 'Purpose code is a 4-letter SEPA code (e.g. GDDS).'),
+    purpose: optStr(4).refine(
+      (v) => !v || /^[A-Za-z0-9]{4}$/.test(v),
+      'Purpose code is a 4-letter SEPA code (e.g. GDDS).',
+    ),
     reference: optStr(35),
     remittance: optStr(140),
     information: optStr(70),
@@ -297,8 +320,15 @@ export const EpcValueSchema = z
 /* ---------- 13. Bitcoin ---------- */
 export const BitcoinValueSchema = z
   .object({
-    address: z.string().trim().min(1, 'Address is required.').refine((v) => BITCOIN_ADDRESS_REGEX.test(v), 'Invalid Bitcoin address.'),
-    amount: optStr(30).refine((v) => !v || /^\d+(\.\d{1,8})?$/.test(v), 'Amount in BTC with up to 8 decimals.'),
+    address: z
+      .string()
+      .trim()
+      .min(1, 'Address is required.')
+      .refine((v) => BITCOIN_ADDRESS_REGEX.test(v), 'Invalid Bitcoin address.'),
+    amount: optStr(30).refine(
+      (v) => !v || /^\d+(\.\d{1,8})?$/.test(v),
+      'Amount in BTC with up to 8 decimals.',
+    ),
     label: optStr(200),
     message: optStr(500),
   })
@@ -307,13 +337,26 @@ export const BitcoinValueSchema = z
 /* ---------- 14. Ethereum ---------- */
 export const EthereumValueSchema = z
   .object({
-    address: z.string().trim().min(1, 'Address is required.').refine((v) => ETH_ADDRESS_REGEX.test(v), 'Invalid Ethereum address.'),
+    address: z
+      .string()
+      .trim()
+      .min(1, 'Address is required.')
+      .refine((v) => ETH_ADDRESS_REGEX.test(v), 'Invalid Ethereum address.'),
     chainId: optStr(12).refine((v) => !v || /^\d+$/.test(v), 'Chain ID must be a positive integer.'),
-    amount: optStr(40).refine((v) => !v || /^\d+(\.\d{1,18})?$/.test(v), 'Amount in ETH with up to 18 decimals.'),
+    amount: optStr(40).refine(
+      (v) => !v || /^\d+(\.\d{1,18})?$/.test(v),
+      'Amount in ETH with up to 18 decimals.',
+    ),
     token: z
       .object({
-        contract: z.string().trim().refine((v) => ETH_ADDRESS_REGEX.test(v), 'Invalid token contract address.'),
-        amount: z.string().trim().regex(/^\d+(\.\d+)?$/, 'Token amount must be a decimal number.'),
+        contract: z
+          .string()
+          .trim()
+          .refine((v) => ETH_ADDRESS_REGEX.test(v), 'Invalid token contract address.'),
+        amount: z
+          .string()
+          .trim()
+          .regex(/^\d+(\.\d+)?$/, 'Token amount must be a decimal number.'),
         decimals: z.coerce.number().int().min(0).max(36).default(18),
       })
       .optional(),
@@ -331,9 +374,18 @@ export const OtpAuthValueSchema = z
     type: z.enum(['totp', 'hotp']).default('totp'),
     account: z.string().trim().min(1, 'Account name is required.').max(200),
     issuer: optStr(200),
-    secret: z.string().trim().min(1, 'Secret is required.').max(512).refine(isValidBase32, 'Secret must be base32 (A-Z, 2-7), at least 8 characters.'),
+    secret: z
+      .string()
+      .trim()
+      .min(1, 'Secret is required.')
+      .max(512)
+      .refine(isValidBase32, 'Secret must be base32 (A-Z, 2-7), at least 8 characters.'),
     algorithm: z.enum(['SHA1', 'SHA256', 'SHA512']).default('SHA1'),
-    digits: z.coerce.number().int().refine((v) => v === 6 || v === 7 || v === 8, 'Digits must be 6, 7 or 8.').default(6),
+    digits: z.coerce
+      .number()
+      .int()
+      .refine((v) => v === 6 || v === 7 || v === 8, 'Digits must be 6, 7 or 8.')
+      .default(6),
     period: z.coerce.number().int().min(5).max(300).default(30),
     counter: z.coerce.number().int().min(0).default(0),
   })
@@ -362,8 +414,17 @@ export const SocialValueSchema = z
     if (v.network === 'custom' && normalizeUrl(v.handle) === null) {
       ctx.addIssue({ code: 'custom', path: ['handle'], message: 'Enter a valid profile URL.' });
     }
-    if (v.network === 'signal' && !hasUriScheme(v.handle) && !isValidPhoneNumber(v.handle) && !v.handle.includes('signal.me')) {
-      ctx.addIssue({ code: 'custom', path: ['handle'], message: 'Signal links use a phone number or a signal.me URL.' });
+    if (
+      v.network === 'signal' &&
+      !hasUriScheme(v.handle) &&
+      !isValidPhoneNumber(v.handle) &&
+      !v.handle.includes('signal.me')
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['handle'],
+        message: 'Signal links use a phone number or a signal.me URL.',
+      });
     }
   });
 
@@ -379,26 +440,42 @@ export const AppLinkValueSchema = z
     switch (v.kind) {
       case 'appstore':
         if (!/^https:\/\/(apps|itunes)\.apple\.com\//i.test(v.value)) {
-          ctx.addIssue({ code: 'custom', path: ['value'], message: 'Use an https://apps.apple.com/... URL.' });
-        }
-        break;
-      case 'playstore':
-        if (!/^https:\/\/play\.google\.com\//i.test(v.value) && !/^[a-zA-Z][\w]*(\.[a-zA-Z][\w]*)+$/.test(v.value)) {
           ctx.addIssue({
             code: 'custom',
             path: ['value'],
-            message: 'Use a https://play.google.com/store/apps/details?id=... URL or a package name like com.example.app.',
+            message: 'Use an https://apps.apple.com/... URL.',
+          });
+        }
+        break;
+      case 'playstore':
+        if (
+          !/^https:\/\/play\.google\.com\//i.test(v.value) &&
+          !/^[a-zA-Z][\w]*(\.[a-zA-Z][\w]*)+$/.test(v.value)
+        ) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['value'],
+            message:
+              'Use a https://play.google.com/store/apps/details?id=... URL or a package name like com.example.app.',
           });
         }
         break;
       case 'deeplink':
         if (!hasUriScheme(v.value) || /\s/.test(v.value)) {
-          ctx.addIssue({ code: 'custom', path: ['value'], message: 'Deep links need a scheme, e.g. myapp://open/item/42.' });
+          ctx.addIssue({
+            code: 'custom',
+            path: ['value'],
+            message: 'Deep links need a scheme, e.g. myapp://open/item/42.',
+          });
         }
         break;
       case 'universal':
         if (!/^https:\/\//i.test(v.value) || normalizeUrl(v.value) === null) {
-          ctx.addIssue({ code: 'custom', path: ['value'], message: 'Universal links must be https:// URLs.' });
+          ctx.addIssue({
+            code: 'custom',
+            path: ['value'],
+            message: 'Universal links must be https:// URLs.',
+          });
         }
         break;
     }
@@ -421,10 +498,18 @@ export const CustomUriValueSchema = z
   .superRefine((v, ctx) => {
     if (v.mode === 'raw') {
       if (!v.raw.trim() || !hasUriScheme(v.raw.trim()) || /\s/.test(v.raw.trim())) {
-        ctx.addIssue({ code: 'custom', path: ['raw'], message: 'Enter a complete URI with a scheme and no spaces.' });
+        ctx.addIssue({
+          code: 'custom',
+          path: ['raw'],
+          message: 'Enter a complete URI with a scheme and no spaces.',
+        });
       }
     } else if (!/^[a-zA-Z][a-zA-Z0-9+.-]*$/.test(v.scheme)) {
-      ctx.addIssue({ code: 'custom', path: ['scheme'], message: 'Scheme must start with a letter (e.g. myapp).' });
+      ctx.addIssue({
+        code: 'custom',
+        path: ['scheme'],
+        message: 'Scheme must start with a letter (e.g. myapp).',
+      });
     }
   });
 

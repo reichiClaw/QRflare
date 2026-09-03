@@ -99,7 +99,12 @@ export function roundedRectPath(
   radii: [number, number, number, number],
 ): string {
   const maxR = Math.min(w, h) / 2;
-  const [tl, tr, br, bl] = radii.map((r) => Math.max(0, Math.min(r, maxR))) as [number, number, number, number];
+  const [tl, tr, br, bl] = radii.map((r) => Math.max(0, Math.min(r, maxR))) as [
+    number,
+    number,
+    number,
+    number,
+  ];
   const right = x + w;
   const bottom = y + h;
   let d = `M${num(x + tl)} ${num(y)}`;
@@ -218,7 +223,10 @@ export function maxLogoBoxModules(n: number, paddingModules: number): number {
   return Math.max(0, n - 16 - 2 - 2 * paddingModules) + 2 * paddingModules;
 }
 
-export function computeLogoBox(n: number, style: Style): { logoModules: number; boxModules: number; clamped: boolean } | null {
+export function computeLogoBox(
+  n: number,
+  style: Style,
+): { logoModules: number; boxModules: number; clamped: boolean } | null {
   const logo = style.logo;
   if (!logo.enabled || !logo.dataUrl) return null;
   const requested = logo.scale * n;
@@ -269,7 +277,9 @@ export function renderSvg(input: RenderInput): RenderResult {
   if (logoBox) {
     const logoUnits = logoBox.logoModules * mu;
     const r = style.logo.cornerRadius * logoUnits;
-    defs.push(`<clipPath id="qrlogo"><rect x="${num((n - logoBox.logoModules) / 2)}" y="${num((n - logoBox.logoModules) / 2)}" width="${num(logoBox.logoModules)}" height="${num(logoBox.logoModules)}" rx="${num(r / mu)}"/></clipPath>`);
+    defs.push(
+      `<clipPath id="qrlogo"><rect x="${num((n - logoBox.logoModules) / 2)}" y="${num((n - logoBox.logoModules) / 2)}" width="${num(logoBox.logoModules)}" height="${num(logoBox.logoModules)}" rx="${num(r / mu)}"/></clipPath>`,
+    );
     logoRect = {
       x: qx + (marginModules + (n - logoBox.boxModules) / 2) * mu,
       y: qy + (marginModules + (n - logoBox.boxModules) / 2) * mu,
@@ -281,7 +291,9 @@ export function renderSvg(input: RenderInput): RenderResult {
 
   // Background
   if (!style.transparentBackground) {
-    parts.push(`<rect width="${num(W)}" height="${num(H)}" rx="${num(layout.cornerRadius)}" fill="${style.background}"/>`);
+    parts.push(
+      `<rect width="${num(W)}" height="${num(H)}" rx="${num(layout.cornerRadius)}" fill="${style.background}"/>`,
+    );
   }
 
   // Border (stroke fully inside [P, P+B])
@@ -339,7 +351,9 @@ export function renderSvg(input: RenderInput): RenderResult {
     }
   }
 
-  parts.push(`<g transform="translate(${num(qx + marginModules * mu)} ${num(qy + marginModules * mu)}) scale(${num(mu)})">`);
+  parts.push(
+    `<g transform="translate(${num(qx + marginModules * mu)} ${num(qy + marginModules * mu)}) scale(${num(mu)})">`,
+  );
   const crisp = style.moduleShape === 'square' && scale === 1 ? ' shape-rendering="crispEdges"' : '';
   parts.push(`<path fill="${fill}" d="${modulesPath}"${crisp}/>`);
 
@@ -351,7 +365,9 @@ export function renderSvg(input: RenderInput): RenderResult {
   }
   const finderCrisp = style.finderFrameShape === 'square' ? ' shape-rendering="crispEdges"' : '';
   parts.push(`<path fill="${finderFill.frame}" fill-rule="evenodd" d="${framePath}"${finderCrisp}/>`);
-  parts.push(`<path fill="${finderFill.center}" d="${centerPath}"${style.finderCenterShape === 'square' ? ' shape-rendering="crispEdges"' : ''}/>`);
+  parts.push(
+    `<path fill="${finderFill.center}" d="${centerPath}"${style.finderCenterShape === 'square' ? ' shape-rendering="crispEdges"' : ''}/>`,
+  );
 
   if (logoBox && style.logo.dataUrl) {
     const box = logoBox.boxModules;
@@ -374,8 +390,16 @@ export function renderSvg(input: RenderInput): RenderResult {
     const blockTop = caption.position === 'top' ? P + B + T : qy + QR_DESIGN_SIZE;
     const baseline = blockTop + caption.gap * (caption.position === 'top' ? 0.5 : 1) + caption.fontSize;
     const anchor = caption.align === 'left' ? 'start' : caption.align === 'right' ? 'end' : 'middle';
-    const tx = caption.align === 'left' ? qx : caption.align === 'right' ? qx + QR_DESIGN_SIZE : qx + QR_DESIGN_SIZE / 2;
-    const color = layout.frame.enabled && caption.color === style.foreground ? readableTextColor(layout.frame.color) : caption.color;
+    const tx =
+      caption.align === 'left'
+        ? qx
+        : caption.align === 'right'
+          ? qx + QR_DESIGN_SIZE
+          : qx + QR_DESIGN_SIZE / 2;
+    const color =
+      layout.frame.enabled && caption.color === style.foreground
+        ? readableTextColor(layout.frame.color)
+        : caption.color;
     parts.push(
       `<text x="${num(tx)}" y="${num(baseline)}" font-family="${escapeXml(CAPTION_FONT_FAMILY)}" font-size="${num(caption.fontSize)}" font-weight="${caption.fontWeight}" letter-spacing="${num(caption.letterSpacing)}" text-anchor="${anchor}" fill="${color}">${escapeXml(caption.text)}</text>`,
     );

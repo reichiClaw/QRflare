@@ -16,13 +16,13 @@
   "assets": {
     "not_found_handling": "single-page-application",
     "run_worker_first": ["/api/*", "/r/*"],
-    "binding": "ASSETS"
+    "binding": "ASSETS",
   },
   "observability": {
     "enabled": true,
     // Head sampling keeps logs useful without recording every invocation.
     // The Worker never writes request bodies or QR payloads to logs.
-    "head_sampling_rate": 0.1
+    "head_sampling_rate": 0.1,
   },
   "vars": {
     // Public, non-secret defaults. Override per deployment in the dashboard or
@@ -35,6 +35,6 @@
     "MAX_RASTER_SIZE": "4096",
     // Set to "true" (and add a D1 binding named DYNAMIC_DB) to enable the
     // optional dynamic QR module.
-    "DYNAMIC_QR_ENABLED": "false"
-  }
+    "DYNAMIC_QR_ENABLED": "false",
+  },
 }

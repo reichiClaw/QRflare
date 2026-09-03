@@ -87,10 +87,19 @@ export function decodeWithJsQr(raster: { width: number; height: number; pixels: 
   return result?.data ?? null;
 }
 
-export async function decodeWithZxing(raster: { width: number; height: number; pixels: Uint8Array }): Promise<string | null> {
+export async function decodeWithZxing(raster: {
+  width: number;
+  height: number;
+  pixels: Uint8Array;
+}): Promise<string | null> {
   await ensureZxing();
   const data = flattenOnWhite(raster.pixels);
-  const imageData = { data, width: raster.width, height: raster.height, colorSpace: 'srgb' } as unknown as ImageData;
+  const imageData = {
+    data,
+    width: raster.width,
+    height: raster.height,
+    colorSpace: 'srgb',
+  } as unknown as ImageData;
   const results = await readBarcodes(imageData, {
     formats: ['QRCode'],
     tryHarder: true,
@@ -118,6 +127,10 @@ export async function decodeSvgStrict(svg: string, width = 512): Promise<string 
 }
 
 /** Decodes raw RGBA pixels with ZXing (used for PNG/JPEG outputs). */
-export async function decodePixels(raster: { width: number; height: number; pixels: Uint8Array }): Promise<string | null> {
+export async function decodePixels(raster: {
+  width: number;
+  height: number;
+  pixels: Uint8Array;
+}): Promise<string | null> {
   return decodeWithZxing(raster);
 }

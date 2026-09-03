@@ -48,13 +48,15 @@ export function parseImageDataUrl(dataUrl: string, maxBytes = MAX_LOGO_BYTES): P
   const mimeType = match[1] as LogoMimeType;
   const bytes = base64Decode(match[2] ?? '');
   if (bytes.length === 0) throw new DataUrlError('Logo image is empty.');
-  if (bytes.length > maxBytes) throw new DataUrlError(`Logo image must be smaller than ${Math.round(maxBytes / 1024)} KB.`);
+  if (bytes.length > maxBytes)
+    throw new DataUrlError(`Logo image must be smaller than ${Math.round(maxBytes / 1024)} KB.`);
   return { mimeType, bytes };
 }
 
 /** Detects the real image type from the first bytes. Returns null when unknown. */
 export function sniffImageType(bytes: Uint8Array): LogoMimeType | null {
-  if (bytes.length >= 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return 'image/png';
+  if (bytes.length >= 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47)
+    return 'image/png';
   if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return 'image/jpeg';
   if (
     bytes.length >= 12 &&
@@ -69,7 +71,11 @@ export function sniffImageType(bytes: Uint8Array): LogoMimeType | null {
   )
     return 'image/webp';
   const head = new TextDecoder('utf-8').decode(bytes.subarray(0, Math.min(bytes.length, 512)));
-  if (/^\s*(<\?xml[^>]*>\s*)?(<!--[\s\S]*?-->\s*)*(<!DOCTYPE[^>]*>\s*)?<svg[\s>]/i.test(head.replace(/^\uFEFF/, ''))) {
+  if (
+    /^\s*(<\?xml[^>]*>\s*)?(<!--[\s\S]*?-->\s*)*(<!DOCTYPE[^>]*>\s*)?<svg[\s>]/i.test(
+      head.replace(/^\uFEFF/, ''),
+    )
+  ) {
     return 'image/svg+xml';
   }
   return null;
@@ -92,7 +98,8 @@ export function validateLogoDataUrl(dataUrl: string): ValidatedLogo {
   const { mimeType, bytes } = parseImageDataUrl(dataUrl);
   const sniffed = sniffImageType(bytes);
   if (!sniffed) throw new DataUrlError('The logo file is not a recognised PNG, JPEG, WebP or SVG image.');
-  if (sniffed !== mimeType) throw new DataUrlError(`The logo claims to be ${mimeType} but contains ${sniffed} data.`);
+  if (sniffed !== mimeType)
+    throw new DataUrlError(`The logo claims to be ${mimeType} but contains ${sniffed} data.`);
   if (mimeType === 'image/svg+xml') {
     if (bytes.length > MAX_SVG_LOGO_BYTES) throw new DataUrlError('SVG logos must be smaller than 512 KB.');
     const text = new TextDecoder().decode(bytes);

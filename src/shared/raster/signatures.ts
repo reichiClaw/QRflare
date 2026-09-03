@@ -18,7 +18,9 @@ export function isJpeg(bytes: Uint8Array): boolean {
 }
 
 export function isSvgText(text: string): boolean {
-  return /^\s*(<\?xml[^>]*>\s*)?(<!--[\s\S]*?-->\s*)*(<!DOCTYPE[^>]*>\s*)?<svg[\s>]/i.test(text.replace(/^\uFEFF/, ''));
+  return /^\s*(<\?xml[^>]*>\s*)?(<!--[\s\S]*?-->\s*)*(<!DOCTYPE[^>]*>\s*)?<svg[\s>]/i.test(
+    text.replace(/^\uFEFF/, ''),
+  );
 }
 
 /** Reads the width/height from a PNG IHDR chunk. */
@@ -36,7 +38,11 @@ export function jpegDimensions(bytes: Uint8Array): { width: number; height: numb
     if (bytes[pos] !== 0xff) return null;
     const marker = bytes[pos + 1] ?? 0;
     const length = ((bytes[pos + 2] ?? 0) << 8) | (bytes[pos + 3] ?? 0);
-    if ((marker >= 0xc0 && marker <= 0xc3) || (marker >= 0xc5 && marker <= 0xc7) || (marker >= 0xc9 && marker <= 0xcb)) {
+    if (
+      (marker >= 0xc0 && marker <= 0xc3) ||
+      (marker >= 0xc5 && marker <= 0xc7) ||
+      (marker >= 0xc9 && marker <= 0xcb)
+    ) {
       const height = ((bytes[pos + 5] ?? 0) << 8) | (bytes[pos + 6] ?? 0);
       const width = ((bytes[pos + 7] ?? 0) << 8) | (bytes[pos + 8] ?? 0);
       return { width, height };

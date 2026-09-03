@@ -6,7 +6,8 @@
  */
 import type { ContentInput, ContentType, ContentValueInput } from './schemas';
 
-export type ContentGroup = 'basic' | 'contact' | 'communication' | 'payments' | 'security' | 'apps' | 'developer';
+export type ContentGroup =
+  'basic' | 'contact' | 'communication' | 'payments' | 'security' | 'apps' | 'developer';
 
 export const CONTENT_GROUPS: Array<{ id: ContentGroup; label: string }> = [
   { id: 'basic', label: 'Basics' },
@@ -68,7 +69,13 @@ export const CONTENT_REGISTRY = {
     group: 'communication',
     icon: 'Mail',
     defaultValue: { to: '', cc: '', bcc: '', subject: '', body: '' },
-    example: { to: 'hello@example.com', cc: '', bcc: '', subject: 'Hi there', body: 'Scanned from a QR code' },
+    example: {
+      to: 'hello@example.com',
+      cc: '',
+      bcc: '',
+      subject: 'Hi there',
+      body: 'Scanned from a QR code',
+    },
     sensitive: true,
   }),
   phone: meta({
@@ -375,14 +382,24 @@ export function getContentMeta<T extends ContentType>(type: T): ContentTypeMeta<
 }
 
 export function defaultContent<T extends ContentType>(type: T): Extract<ContentInput, { type: T }> {
-  return { type, value: structuredClone(getContentMeta(type).defaultValue) } as unknown as Extract<ContentInput, { type: T }>;
+  return { type, value: structuredClone(getContentMeta(type).defaultValue) } as unknown as Extract<
+    ContentInput,
+    { type: T }
+  >;
 }
 
 export function exampleContent<T extends ContentType>(type: T): Extract<ContentInput, { type: T }> {
-  return { type, value: structuredClone(getContentMeta(type).example) } as unknown as Extract<ContentInput, { type: T }>;
+  return { type, value: structuredClone(getContentMeta(type).example) } as unknown as Extract<
+    ContentInput,
+    { type: T }
+  >;
 }
 
-export function contentTypesByGroup(): Array<{ group: ContentGroup; label: string; types: ContentTypeMeta[] }> {
+export function contentTypesByGroup(): Array<{
+  group: ContentGroup;
+  label: string;
+  types: ContentTypeMeta[];
+}> {
   return CONTENT_GROUPS.map((g) => ({
     group: g.id,
     label: g.label,

@@ -72,7 +72,10 @@ export function normalizeUrl(input: string, autoHttps = true): string | null {
 
 /** Percent-encodes for use inside URI query components (RFC 3986 unreserved kept). */
 export function encodeQueryComponent(value: string): string {
-  return encodeURIComponent(value).replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
+  return encodeURIComponent(value).replace(
+    /[!'()*]/g,
+    (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
 }
 
 /** Percent-encodes a URI path segment while keeping @ : and . readable (used by otpauth labels). */
@@ -91,7 +94,11 @@ export function buildQuery(params: Array<[string, string | undefined | null]>): 
 
 /** Escapes text for vCard / iCalendar property values (RFC 6350 / RFC 5545). */
 export function escapeVText(value: string): string {
-  return value.replace(/\\/g, '\\\\').replace(/\r\n|\r|\n/g, '\\n').replace(/;/g, '\\;').replace(/,/g, '\\,');
+  return value
+    .replace(/\\/g, '\\\\')
+    .replace(/\r\n|\r|\n/g, '\\n')
+    .replace(/;/g, '\\;')
+    .replace(/,/g, '\\,');
 }
 
 /** Escapes text for MeCard fields. */
@@ -135,7 +142,8 @@ export function normalizeBase32(secret: string): string {
   return secret.replace(/[\s-]/g, '').toUpperCase().replace(/=+$/, '');
 }
 
-export const BITCOIN_ADDRESS_REGEX = /^(bc1[ac-hj-np-z02-9]{11,87}|[13][a-km-zA-HJ-NP-Z1-9]{25,34}|tb1[ac-hj-np-z02-9]{11,87})$/;
+export const BITCOIN_ADDRESS_REGEX =
+  /^(bc1[ac-hj-np-z02-9]{11,87}|[13][a-km-zA-HJ-NP-Z1-9]{25,34}|tb1[ac-hj-np-z02-9]{11,87})$/;
 export const ETH_ADDRESS_REGEX = /^0x[0-9a-fA-F]{40}$/;
 
 /** Converts a decimal string (e.g. "1.5") to an integer string in base units (e.g. wei with 18 decimals). */
@@ -197,7 +205,14 @@ export function zonedTimeToUtc(local: string, timeZone: string): Date | null {
   const offsetAt = (utcMillis: number): number => {
     const parts = formatter.formatToParts(new Date(utcMillis));
     const get = (type: string) => Number(parts.find((p) => p.type === type)?.value ?? '0');
-    const zoned = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour') % 24, get('minute'), get('second'));
+    const zoned = Date.UTC(
+      get('year'),
+      get('month') - 1,
+      get('day'),
+      get('hour') % 24,
+      get('minute'),
+      get('second'),
+    );
     return zoned - utcMillis;
   };
   let utc = asUtc - offsetAt(asUtc);

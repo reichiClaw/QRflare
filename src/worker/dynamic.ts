@@ -17,7 +17,10 @@ const CODE_REGEX = /^[A-Za-z0-9_-]{4,32}$/;
 
 const LinkInputSchema = z
   .object({
-    code: z.string().regex(CODE_REGEX, 'Code must be 4-32 characters: letters, digits, "-" or "_".').optional(),
+    code: z
+      .string()
+      .regex(CODE_REGEX, 'Code must be 4-32 characters: letters, digits, "-" or "_".')
+      .optional(),
     destination: z
       .string()
       .trim()
@@ -70,7 +73,11 @@ function randomCode(length = 8): string {
 
 function requireAdmin(request: Request, env: Env): void {
   if (!env.DYNAMIC_ADMIN_TOKEN) {
-    throw new HttpError(503, 'ADMIN_TOKEN_MISSING', 'Set the DYNAMIC_ADMIN_TOKEN secret to manage dynamic links.');
+    throw new HttpError(
+      503,
+      'ADMIN_TOKEN_MISSING',
+      'Set the DYNAMIC_ADMIN_TOKEN secret to manage dynamic links.',
+    );
   }
   const token = bearerToken(request);
   if (!token || !safeEqual(token, env.DYNAMIC_ADMIN_TOKEN)) {
@@ -102,8 +109,10 @@ export async function handleRedirect(request: Request, env: Env, code: string): 
   const row = await database.prepare('SELECT * FROM links WHERE code = ?1').bind(code).first<LinkRow>();
   if (!row) return unavailablePage('No link exists for this code.');
   if (row.enabled !== 1) return unavailablePage('The link has been disabled.');
-  if (row.expires_at && Date.parse(row.expires_at) < Date.now()) return unavailablePage('The link has expired.');
-  if (row.max_scans !== null && row.scan_count >= row.max_scans) return unavailablePage('The link reached its scan limit.');
+  if (row.expires_at && Date.parse(row.expires_at) < Date.now())
+    return unavailablePage('The link has expired.');
+  if (row.max_scans !== null && row.scan_count >= row.max_scans)
+    return unavailablePage('The link reached its scan limit.');
 
   const day = new Date().toISOString().slice(0, 10);
   // Counters are aggregate only – nothing about the visitor is stored.
@@ -149,12 +158,20 @@ export async function handleDynamicApi(request: Request, env: Env, subPath: stri
     if (request.method === 'POST') {
       const body = LinkInputSchema.safeParse(await readJsonBody(request, 16_384));
       if (!body.success) {
-        throw new HttpError(400, 'VALIDATION', 'Invalid link.', body.error.issues.map((i) => ({ path: i.path.join('.'), message: i.message })));
+        throw new HttpError(
+          400,
+          'VALIDATION',
+          'Invalid link.',
+          body.error.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
+        );
       }
       const now = new Date().toISOString();
       let linkCode = body.data.code ?? randomCode();
       for (let attempt = 0; attempt < 5; attempt++) {
-        const existing = await database.prepare('SELECT code FROM links WHERE code = ?1').bind(linkCode).first();
+        const existing = await database
+          .prepare('SELECT code FROM links WHERE code = ?1')
+          .bind(linkCode)
+          .first();
         if (!existing) break;
         if (body.data.code) throw new HttpError(409, 'CONFLICT', 'A link with this code already exists.');
         linkCode = randomCode();
@@ -163,9 +180,20 @@ export async function handleDynamicApi(request: Request, env: Env, subPath: stri
         .prepare(
           'INSERT INTO links (code, destination, label, enabled, expires_at, max_scans, scan_count, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, 0, ?7, ?7)',
         )
-        .bind(linkCode, body.data.destination, body.data.label ?? null, body.data.enabled ? 1 : 0, body.data.expiresAt ?? null, body.data.maxScans ?? null, now)
+        .bind(
+          linkCode,
+          body.data.destination,
+          body.data.label ?? null,
+          body.data.enabled ? 1 : 0,
+          body.data.expiresAt ?? null,
+          body.data.maxScans ?? null,
+          now,
+        )
         .run();
-      const row = await database.prepare('SELECT * FROM links WHERE code = ?1').bind(linkCode).first<LinkRow>();
+      const row = await database
+        .prepare('SELECT * FROM links WHERE code = ?1')
+        .bind(linkCode)
+        .first<LinkRow>();
       return json({ link: row ? toPublic(row, origin) : null }, { status: 201 });
     }
     throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Use GET or POST.');
@@ -185,7 +213,12 @@ export async function handleDynamicApi(request: Request, env: Env, subPath: stri
   if (request.method === 'PATCH') {
     const body = LinkPatchSchema.safeParse(await readJsonBody(request, 16_384));
     if (!body.success) {
-      throw new HttpError(400, 'VALIDATION', 'Invalid update.', body.error.issues.map((i) => ({ path: i.path.join('.'), message: i.message })));
+      throw new HttpError(
+        400,
+        'VALIDATION',
+        'Invalid update.',
+        body.error.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
+      );
     }
     const patch = body.data;
     const next = {
@@ -199,7 +232,15 @@ export async function handleDynamicApi(request: Request, env: Env, subPath: stri
       .prepare(
         'UPDATE links SET destination = ?2, label = ?3, enabled = ?4, expires_at = ?5, max_scans = ?6, updated_at = ?7 WHERE code = ?1',
       )
-      .bind(code, next.destination, next.label, next.enabled, next.expires_at, next.max_scans, new Date().toISOString())
+      .bind(
+        code,
+        next.destination,
+        next.label,
+        next.enabled,
+        next.expires_at,
+        next.max_scans,
+        new Date().toISOString(),
+      )
       .run();
     const updated = await database.prepare('SELECT * FROM links WHERE code = ?1').bind(code).first<LinkRow>();
     return json({ link: updated ? toPublic(updated, origin) : null });

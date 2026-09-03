@@ -224,7 +224,7 @@ function parseLength(value: string | undefined): number | null {
 }
 
 function sanitizeElement(el: XmlElement, removed: string[], isRoot: boolean): XmlElement | null {
-  const localName = el.name.includes(':') ? el.name.split(':')[1] ?? el.name : el.name;
+  const localName = el.name.includes(':') ? (el.name.split(':')[1] ?? el.name) : el.name;
   if (FORBIDDEN_ELEMENTS.has(localName)) {
     removed.push(`<${localName}> element`);
     return null;
@@ -269,7 +269,11 @@ function sanitizeElement(el: XmlElement, removed: string[], isRoot: boolean): Xm
       }
     }
     if (
-      (name === 'fill' || name === 'stroke' || name === 'clip-path' || name === 'mask' || name === 'filter') &&
+      (name === 'fill' ||
+        name === 'stroke' ||
+        name === 'clip-path' ||
+        name === 'mask' ||
+        name === 'filter') &&
       /url\s*\(/i.test(value)
     ) {
       const match = /url\s*\(\s*(['"]?)([^'")]*)\1\s*\)/i.exec(value);
@@ -336,12 +340,20 @@ export function sanitizeSvg(source: string): SanitizeResult {
   else delete sanitized.attributes['xmlns:xlink'];
 
   // Ensure the document has a usable size: viewBox preferred, otherwise derive from width/height.
-  let width = 0;
-  let height = 0;
+  let width: number;
+  let height: number;
   const viewBox = sanitized.attributes.viewBox;
   if (viewBox) {
-    const parts = viewBox.trim().split(/[\s,]+/).map(Number);
-    if (parts.length !== 4 || parts.some((p) => !Number.isFinite(p)) || (parts[2] ?? 0) <= 0 || (parts[3] ?? 0) <= 0) {
+    const parts = viewBox
+      .trim()
+      .split(/[\s,]+/)
+      .map(Number);
+    if (
+      parts.length !== 4 ||
+      parts.some((p) => !Number.isFinite(p)) ||
+      (parts[2] ?? 0) <= 0 ||
+      (parts[3] ?? 0) <= 0
+    ) {
       return { ok: false, reason: 'The SVG viewBox attribute is invalid.' };
     }
     width = parts[2] ?? 0;
@@ -357,8 +369,10 @@ export function sanitizeSvg(source: string): SanitizeResult {
     sanitized.attributes.viewBox = `0 0 ${w} ${h}`;
   }
   // Percentage sizes cannot be embedded reliably – normalise to the viewBox size.
-  if (!sanitized.attributes.width || /%/.test(sanitized.attributes.width)) sanitized.attributes.width = String(width);
-  if (!sanitized.attributes.height || /%/.test(sanitized.attributes.height)) sanitized.attributes.height = String(height);
+  if (!sanitized.attributes.width || /%/.test(sanitized.attributes.width))
+    sanitized.attributes.width = String(width);
+  if (!sanitized.attributes.height || /%/.test(sanitized.attributes.height))
+    sanitized.attributes.height = String(height);
 
   const unique = [...new Set(removed)];
   return { ok: true, svg: serializeXml(sanitized), removed: unique, width, height };

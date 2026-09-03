@@ -8,7 +8,15 @@
 import { handleGenerate, handleHealth, handleSchema, handleValidate } from './api';
 import { handleDynamicApi, handleRedirect } from './dynamic';
 import type { Env } from './env';
-import { applyHeaders, bearerToken, corsContext, errorResponse, HttpError, preflight, safeEqual } from './http';
+import {
+  applyHeaders,
+  bearerToken,
+  corsContext,
+  errorResponse,
+  HttpError,
+  preflight,
+  safeEqual,
+} from './http';
 
 function requireApiToken(request: Request, env: Env): void {
   if (!env.API_TOKEN) return;
@@ -27,7 +35,8 @@ async function route(request: Request, env: Env, url: URL): Promise<Response> {
   const path = url.pathname.replace(/\/+$/, '') || '/';
 
   if (path === '/api/health' || path === '/api/v1/health') {
-    if (request.method !== 'GET' && request.method !== 'HEAD') throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Use GET.');
+    if (request.method !== 'GET' && request.method !== 'HEAD')
+      throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Use GET.');
     return handleHealth(env);
   }
 
@@ -55,7 +64,8 @@ async function route(request: Request, env: Env, url: URL): Promise<Response> {
   if (path.startsWith('/api')) throw new HttpError(404, 'NOT_FOUND', 'Unknown API endpoint.');
 
   if (path.startsWith('/r/')) {
-    if (request.method !== 'GET' && request.method !== 'HEAD') throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Use GET.');
+    if (request.method !== 'GET' && request.method !== 'HEAD')
+      throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Use GET.');
     return handleRedirect(request, env, path.slice(3));
   }
 
