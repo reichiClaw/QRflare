@@ -4,6 +4,23 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] – 2026-09-03
+
+### Added
+
+- **Admin area** (password protected): first-run password setup or `ADMIN_PASSWORD`, signed 12-hour sessions, rate-limited login, password change.
+- **In-app settings** stored in an auto-provisioned D1 database: application name, dynamic-link provider and domain, Sink connection with connection test, API bearer token (with generator), CORS allowlist, maximum raster size, public/admin-only link management. Environment variables act as defaults.
+- **Sink provider** for dynamic links: create, list, edit and delete links in a self-hosted [Sink](https://github.com/miantiao-me/sink) instance through its API, with an optional separate short-link domain encoded in the QR codes.
+- Unified `/api/v1/links` API and **Links** page for both providers; **Use in studio** loads a short link into the editor.
+- `GET /api/health` now reports public features (`appName`, `storage`, `adminSetupRequired`, `apiTokenRequired`, `dynamicLinks`).
+- Admin flow covered by workerd tests (real D1) and a Playwright test.
+
+### Changed
+
+- Renamed to **FlareQR Studio**; Worker name `flareqr-studio`; local storage keys use the `flareqr:` prefix.
+- `wrangler.jsonc` declares a D1 binding without an id; Wrangler and the Deploy button provision it automatically and the Worker creates its tables on first use. The separate migration step, `deploy:dynamic` script and `wrangler.dynamic.example.jsonc` were removed.
+- Dynamic links are configured in the Admin area instead of `DYNAMIC_QR_ENABLED` / `DYNAMIC_ADMIN_TOKEN`; the endpoint moved from `/api/v1/dynamic/links` to `/api/v1/links`.
+
 ## [1.0.0] – 2026-09-03
 
 ### Added

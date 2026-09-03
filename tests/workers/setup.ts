@@ -1,4 +1,13 @@
-import { applyD1Migrations, env } from 'cloudflare:test';
+import { reset } from 'cloudflare:test';
+import { beforeEach } from 'vitest';
 
-// Apply the dynamic-module migrations to the throw-away test database.
-await applyD1Migrations(env.DYNAMIC_DB, env.TEST_MIGRATIONS);
+import { resetSchemaCache } from '../../src/worker/db';
+import { resetSettingsCache } from '../../src/worker/settings';
+
+// Give every test a clean D1 database and forget the per-isolate caches that
+// would otherwise remember tables and settings from the previous test.
+beforeEach(async () => {
+  await reset();
+  resetSchemaCache();
+  resetSettingsCache();
+});

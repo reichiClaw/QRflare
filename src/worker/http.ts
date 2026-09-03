@@ -4,8 +4,6 @@
  */
 import type { PayloadIssue } from '@shared/content/builders';
 
-import { parseAllowedOrigins, type Env } from './env';
-
 export class HttpError extends Error {
   constructor(
     readonly status: number,
@@ -37,12 +35,12 @@ export interface CorsContext {
   sameOrigin: boolean;
 }
 
-export function corsContext(request: Request, env: Env): CorsContext {
+export function corsContext(request: Request, allowedOrigins: readonly string[]): CorsContext {
   const origin = request.headers.get('Origin');
   if (!origin) return { origin: null, allowed: false, sameOrigin: true };
   const selfOrigin = new URL(request.url).origin;
   if (origin === selfOrigin) return { origin, allowed: true, sameOrigin: true };
-  const allowed = parseAllowedOrigins(env).includes(origin);
+  const allowed = allowedOrigins.includes(origin);
   return { origin, allowed, sameOrigin: false };
 }
 

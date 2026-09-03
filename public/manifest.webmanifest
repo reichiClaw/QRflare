@@ -1,6 +1,6 @@
 {
-  "name": "EdgeQR Studio",
-  "short_name": "EdgeQR",
+  "name": "FlareQR Studio",
+  "short_name": "FlareQR",
   "description": "Self-hosted, privacy-first QR code studio with rich styling, logos, batch export and an HTTP API.",
   "id": "/",
   "start_url": "/",

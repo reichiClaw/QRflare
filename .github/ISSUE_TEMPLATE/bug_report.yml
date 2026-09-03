@@ -34,7 +34,8 @@ body:
         - HTTP API
         - Scanning / decoding result
         - Deployment / Cloudflare
-        - Dynamic QR module
+        - Dynamic links (built-in or Sink)
+        - Admin area / settings
         - Other
     validations:
       required: true

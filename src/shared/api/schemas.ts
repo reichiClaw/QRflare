@@ -85,8 +85,16 @@ export const HealthResponseSchema = z.object({
   buildTime: z.string(),
   api: z.object({ version: z.literal('v1'), openapi: z.string() }),
   features: z.object({
-    dynamicQr: z.boolean(),
+    appName: z.string(),
+    storage: z.boolean(),
+    adminSetupRequired: z.boolean(),
+    adminAvailable: z.boolean(),
     apiTokenRequired: z.boolean(),
+    dynamicLinks: z.object({
+      provider: z.enum(['off', 'builtin', 'sink']),
+      publicAccess: z.boolean(),
+      linkBaseUrl: z.string(),
+    }),
   }),
   limits: z.object({
     maxRequestBodyBytes: z.number(),
@@ -99,7 +107,7 @@ export type HealthResponse = z.infer<typeof HealthResponseSchema>;
 export function requestJsonSchema() {
   return {
     $schema: 'https://json-schema.org/draft/2020-12/schema',
-    title: 'EdgeQR Studio generate request',
+    title: 'FlareQR Studio generate request',
     description: 'Body of POST /api/v1/generate and POST /api/v1/validate.',
     type: 'object',
     additionalProperties: false,

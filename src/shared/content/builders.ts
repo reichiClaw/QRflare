@@ -216,11 +216,11 @@ const buildEvent: Builder<'event'> = (v) => {
     warnings.push('No time zone selected: the event uses floating local time on the scanning device.');
   }
 
-  const uid = `${fnv1a(`${v.title}|${v.start}|${v.end}|${v.location}`)}@edgeqr`;
+  const uid = `${fnv1a(`${v.title}|${v.start}|${v.end}|${v.location}`)}@flareqr`;
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//EdgeQR Studio//EN',
+    'PRODID:-//FlareQR Studio//EN',
     'BEGIN:VEVENT',
     `UID:${uid}`,
     `DTSTAMP:${dtStamp}`,

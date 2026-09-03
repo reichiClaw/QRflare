@@ -8,9 +8,9 @@
  */
 export const branding = {
   /** Product name shown in the header, document title and PWA manifest. */
-  name: 'EdgeQR Studio',
+  name: 'FlareQR Studio',
   /** Short product name for the PWA home-screen icon. */
-  shortName: 'EdgeQR',
+  shortName: 'FlareQR',
   /** One-sentence description used in meta tags and the README. */
   description:
     'Self-hosted, privacy-first QR code studio with rich styling, logo support, batch generation and an HTTP API – running on Cloudflare Workers.',

@@ -3,7 +3,7 @@
 - `api/*.json` – request bodies for `POST /api/v1/generate` and `POST /api/v1/validate`. Use them with curl:
 
   ```bash
-  curl -X POST https://edgeqr-studio.YOUR-SUBDOMAIN.workers.dev/api/v1/generate \
+  curl -X POST https://flareqr-studio.YOUR-SUBDOMAIN.workers.dev/api/v1/generate \
     -H 'Content-Type: application/json' \
     -d @examples/api/url-gradient-png.json --output example-qr.png
   ```

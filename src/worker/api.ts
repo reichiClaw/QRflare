@@ -1,7 +1,6 @@
 /**
  * /api/* handlers.
  */
-import { branding } from '../config/branding';
 import {
   MAX_PAYLOAD_CHARS,
   MAX_REQUEST_BODY_BYTES,
@@ -11,27 +10,40 @@ import {
 } from '@shared/api/schemas';
 import { prepare, type Prepared } from '@shared/pipeline';
 import { contentDisposition } from '@shared/security/filename';
+import { resolveLinkBaseUrl, type AppSettings, type PublicFeatures } from '@shared/settings/schema';
 import { MIME_TYPES } from '@shared/style/schema';
 
-import { dynamicQrEnabled, maxRasterSize, type Env } from './env';
+import { adminState } from './admin';
+import type { Env } from './env';
 import { HttpError, json, readJsonBody } from './http';
 import { rasterizeSvg } from './raster';
 
-export function handleHealth(env: Env): Response {
+export async function handleHealth(request: Request, env: Env, settings: AppSettings): Promise<Response> {
+  const admin = await adminState(env);
+  const features: PublicFeatures = {
+    appName: settings.general.appName,
+    storage: admin.storage,
+    adminSetupRequired: admin.setupRequired,
+    adminAvailable: admin.adminAvailable,
+    apiTokenRequired: settings.api.requireToken && settings.api.token.length > 0,
+    dynamicLinks: {
+      provider: settings.dynamic.provider,
+      publicAccess: settings.dynamic.publicAccess,
+      linkBaseUrl:
+        settings.dynamic.provider === 'off' ? '' : resolveLinkBaseUrl(settings, new URL(request.url).origin),
+    },
+  };
   const body: HealthResponse = {
     status: 'ok',
-    name: env.APP_NAME ?? branding.name,
+    name: settings.general.appName,
     version: __APP_VERSION__,
     commit: __APP_COMMIT__,
     buildTime: __APP_BUILD_TIME__,
     api: { version: 'v1', openapi: '/openapi.yaml' },
-    features: {
-      dynamicQr: dynamicQrEnabled(env),
-      apiTokenRequired: Boolean(env.API_TOKEN),
-    },
+    features,
     limits: {
       maxRequestBodyBytes: MAX_REQUEST_BODY_BYTES,
-      maxRasterSize: maxRasterSize(env),
+      maxRasterSize: settings.api.maxRasterSize,
       maxPayloadChars: MAX_PAYLOAD_CHARS,
     },
   };
@@ -49,14 +61,14 @@ export function handleSchema(): Response {
   });
 }
 
-async function prepareFromRequest(request: Request, env: Env): Promise<Prepared> {
+async function prepareFromRequest(request: Request, settings: AppSettings): Promise<Prepared> {
   const body = await readJsonBody(request, MAX_REQUEST_BODY_BYTES);
   const result = prepare(body);
   if (!result.ok) {
     const status = result.code === 'CAPACITY' ? 422 : 400;
     throw new HttpError(status, result.code, result.message, result.issues);
   }
-  const limit = maxRasterSize(env);
+  const limit = settings.api.maxRasterSize;
   if (result.output.format !== 'svg' && result.output.size > limit) {
     throw new HttpError(
       400,
@@ -68,8 +80,8 @@ async function prepareFromRequest(request: Request, env: Env): Promise<Prepared>
   return result;
 }
 
-export async function handleValidate(request: Request, env: Env): Promise<Response> {
-  const prepared = await prepareFromRequest(request, env);
+export async function handleValidate(request: Request, settings: AppSettings): Promise<Response> {
+  const prepared = await prepareFromRequest(request, settings);
   const body: ValidateResponse = {
     ok: true,
     payload: prepared.payload,
@@ -123,8 +135,8 @@ function stripLogoData(style: Prepared['style']): Prepared['style'] {
   return { ...style, logo: { ...style.logo, dataUrl: undefined } };
 }
 
-export async function handleGenerate(request: Request, env: Env): Promise<Response> {
-  const prepared = await prepareFromRequest(request, env);
+export async function handleGenerate(request: Request, settings: AppSettings): Promise<Response> {
+  const prepared = await prepareFromRequest(request, settings);
   const url = new URL(request.url);
   const inline = url.searchParams.get('disposition') === 'inline';
   const headers: Record<string, string> = {

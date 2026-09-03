@@ -7,6 +7,7 @@ import { useShortcuts, useUnsavedGuard } from './hooks/useShortcuts';
 import { useTheme } from './hooks/useTheme';
 import { cn } from './lib/cn';
 import { useEditor } from './store/editor';
+import { useServer } from './store/server';
 import { ContentPanel } from './components/content/ContentPanel';
 import { DesignPanel } from './components/design/DesignPanel';
 import { ExportPanel } from './components/export/ExportPanel';
@@ -16,10 +17,11 @@ import { PreviewPanel } from './components/preview/PreviewPanel';
 import { ReliabilityPanel } from './components/preview/ReliabilityPanel';
 import { SettingsDialog } from './components/settings/SettingsDialog';
 import { HistoryView } from './components/history/HistoryView';
+import { LinksView } from './components/links/LinksView';
 import { Toaster } from './components/ui/Primitives';
 
 const BatchView = lazy(() => import('./components/batch/BatchView'));
-const DynamicView = lazy(() => import('./components/dynamic/DynamicView'));
+const AdminView = lazy(() => import('./components/admin/AdminView'));
 
 type MobileTab = 'content' | 'preview' | 'design' | 'export';
 
@@ -29,21 +31,6 @@ const MOBILE_TABS: Array<{ id: MobileTab; label: string; icon: typeof FileText }
   { id: 'design', label: 'Design', icon: Palette },
   { id: 'export', label: 'Export', icon: Download },
 ];
-
-function useDynamicFeature(): boolean {
-  const [enabled, setEnabled] = useState(false);
-  useEffect(() => {
-    const controller = new AbortController();
-    fetch('/api/health', { signal: controller.signal })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((body: { features?: { dynamicQr?: boolean } } | null) =>
-        setEnabled(Boolean(body?.features?.dynamicQr)),
-      )
-      .catch(() => setEnabled(false));
-    return () => controller.abort();
-  }, []);
-  return enabled;
-}
 
 function LoadingView() {
   return (
@@ -63,8 +50,17 @@ export function App() {
   const [mobileTab, setMobileTab] = useState<MobileTab>('content');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const isDesktop = useIsDesktop();
-  const dynamicAvailable = useDynamicFeature();
+  const refreshServer = useServer((s) => s.refresh);
+  const appName = useServer((s) => s.features.appName);
   const generation = useGeneration();
+
+  useEffect(() => {
+    void refreshServer();
+  }, [refreshServer]);
+
+  useEffect(() => {
+    document.title = `${appName} – Private QR code generator`;
+  }, [appName]);
 
   return (
     <div className="flex min-h-full flex-col">
@@ -74,12 +70,7 @@ export function App() {
       >
         Skip to content
       </a>
-      <Header
-        view={view}
-        onViewChange={setView}
-        onOpenSettings={() => setSettingsOpen(true)}
-        dynamicAvailable={dynamicAvailable}
-      />
+      <Header view={view} onViewChange={setView} onOpenSettings={() => setSettingsOpen(true)} />
 
       <main id="main" className="mx-auto w-full max-w-[1600px] flex-1 px-3 py-4 sm:px-5" tabIndex={-1}>
         {view === 'studio' ? (
@@ -189,9 +180,12 @@ export function App() {
           </Suspense>
         ) : null}
         {view === 'history' ? <HistoryView onRestore={() => setView('studio')} /> : null}
-        {view === 'dynamic' && dynamicAvailable ? (
+        {view === 'links' ? (
+          <LinksView onUseInStudio={() => setView('studio')} onGoToAdmin={() => setView('admin')} />
+        ) : null}
+        {view === 'admin' ? (
           <Suspense fallback={<LoadingView />}>
-            <DynamicView onUseInStudio={() => setView('studio')} />
+            <AdminView onUseInStudio={() => setView('studio')} />
           </Suspense>
         ) : null}
       </main>

@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { isJpeg, isPng, jpegDimensions, pngDimensions } from '@shared/raster/signatures';
 import { base64Encode } from '@shared/security/data-url';
 
-const BASE = 'https://edgeqr.test';
+const BASE = 'https://flareqr.test';
 
 function readJson<T>(res: Response): Promise<T> {
   return res.json<T>();
@@ -34,8 +34,15 @@ describe('GET /api/health', () => {
     expect(body.status).toBe('ok');
     expect(body.version).toBe('test');
     expect((body.api as Record<string, string>).version).toBe('v1');
-    expect((body.features as Record<string, boolean>).dynamicQr).toBe(false);
-    expect(JSON.stringify(body)).not.toMatch(/API_TOKEN|DYNAMIC_ADMIN_TOKEN|CORS_ALLOWED_ORIGINS/);
+    const features = body.features as {
+      storage: boolean;
+      adminSetupRequired: boolean;
+      dynamicLinks: { provider: string };
+    };
+    expect(features.storage).toBe(true);
+    expect(features.adminSetupRequired).toBe(true);
+    expect(features.dynamicLinks.provider).toBe('off');
+    expect(JSON.stringify(body)).not.toMatch(/API_TOKEN|ADMIN_PASSWORD|CORS_ALLOWED_ORIGINS|token"/);
   });
 
   it('sends security and caching headers', async () => {
@@ -273,10 +280,10 @@ describe('CORS', () => {
   });
 });
 
-describe('dynamic module (disabled by default)', () => {
+describe('dynamic links (off by default)', () => {
   it('reports the feature as disabled and serves a 404 page for /r/*', async () => {
-    expect(env.DYNAMIC_QR_ENABLED).toBe('false');
-    const api = await SELF.fetch(`${BASE}/api/v1/dynamic/links`, { headers: { Authorization: 'Bearer x' } });
+    expect(env.DB).toBeDefined();
+    const api = await SELF.fetch(`${BASE}/api/v1/links`, { headers: { Authorization: 'Bearer x' } });
     expect(api.status).toBe(404);
     const redirect = await SELF.fetch(`${BASE}/r/abcd1234`, { redirect: 'manual' });
     expect(redirect.status).toBe(404);

@@ -74,7 +74,7 @@ export const usePresets = create<PresetsState>()((set, get) => ({
       return { imported: 0, error: 'The file is not valid JSON.' };
     }
     const file = PresetFileSchema.safeParse(data);
-    if (!file.success) return { imported: 0, error: 'The file is not an EdgeQR preset export.' };
+    if (!file.success) return { imported: 0, error: 'The file is not an FlareQR preset export.' };
     const existingIds = new Set(get().custom.map((p) => p.id));
     const incoming = file.data.presets.map((p) => ({
       ...p,
@@ -88,7 +88,7 @@ export const usePresets = create<PresetsState>()((set, get) => ({
   },
   exportToJson: () =>
     JSON.stringify(
-      { app: 'edgeqr-studio', version: 1, presets: get().custom.map((p) => ({ ...p, builtIn: false })) },
+      { app: 'flareqr-studio', version: 1, presets: get().custom.map((p) => ({ ...p, builtIn: false })) },
       null,
       2,
     ),

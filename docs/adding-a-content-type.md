@@ -49,7 +49,7 @@ mastodon: meta({
   group: 'apps',
   icon: 'AtSign',           // any key in src/app/lib/icons.ts
   defaultValue: { instance: '', handle: '' },
-  example: { instance: 'mastodon.social', handle: 'edgeqr' },
+  example: { instance: 'mastodon.social', handle: 'flareqr' },
   sensitive: false,
 }),
 ```

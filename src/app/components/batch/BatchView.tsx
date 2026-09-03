@@ -185,7 +185,7 @@ export default function BatchView() {
               variant="outline"
               icon={Download}
               onClick={() =>
-                downloadText(exampleCsv(), 'edgeqr-batch-template.csv', 'text/csv;charset=utf-8')
+                downloadText(exampleCsv(), 'flareqr-batch-template.csv', 'text/csv;charset=utf-8')
               }
             >
               Download template
@@ -307,7 +307,7 @@ export default function BatchView() {
                   size="sm"
                   variant="primary"
                   icon={Download}
-                  onClick={() => downloadBlob(result.zip, 'edgeqr-batch.zip')}
+                  onClick={() => downloadBlob(result.zip, 'flareqr-batch.zip')}
                   disabled={result.generated === 0}
                   data-testid="batch-download"
                 >

@@ -1,6 +1,6 @@
 {
-  "name": "edgeqr-studio",
-  "version": "1.0.0",
+  "name": "flareqr-studio",
+  "version": "1.1.0",
   "private": true,
   "description": "Self-hosted, privacy-first QR code studio running on Cloudflare Workers.",
   "license": "MIT",
@@ -24,7 +24,6 @@
     "test:browser": "playwright test",
     "check": "npm run typecheck && npm run lint && npm run format:check && npm run test && npm run build",
     "deploy": "npm run build && wrangler deploy",
-    "deploy:dynamic": "node scripts/deploy-dynamic.mjs",
     "icons": "node scripts/generate-icons.mjs",
     "audit": "npm audit --omit=dev"
   },

@@ -1,11 +1,11 @@
 /** Safe JSON helpers over localStorage (quota errors and private mode are tolerated). */
 
 export const STORAGE_KEYS = {
-  theme: 'edgeqr:theme',
-  settings: 'edgeqr:settings',
-  presets: 'edgeqr:presets',
-  design: 'edgeqr:design',
-  history: 'edgeqr:history',
+  theme: 'flareqr:theme',
+  settings: 'flareqr:settings',
+  presets: 'flareqr:presets',
+  design: 'flareqr:design',
+  history: 'flareqr:history',
 } as const;
 
 export function readJson<T>(key: string, fallback: T): T {

@@ -14,7 +14,7 @@ import { Button } from '../ui/Button';
 import { TextInput } from '../ui/Field';
 import { ConfirmDialog, Dialog, SectionTitle } from '../ui/Primitives';
 
-const SAMPLE = encodeQr('EdgeQR presets', { errorCorrection: 'M', boostErrorCorrection: false });
+const SAMPLE = encodeQr('FlareQR presets', { errorCorrection: 'M', boostErrorCorrection: false });
 
 function presetThumb(preset: Preset): string {
   const style = resolveStyle({ ...preset.style, logo: { enabled: false } });
@@ -155,7 +155,7 @@ export function PresetsTab() {
             icon={Download}
             disabled={custom.length === 0}
             onClick={() => {
-              downloadText(exportJson(), 'edgeqr-presets.json', 'application/json');
+              downloadText(exportJson(), 'flareqr-presets.json', 'application/json');
               toast.success('Presets exported');
             }}
           >

@@ -1,20 +1,21 @@
-# EdgeQR Studio
+# FlareQR Studio
 
 **A self-hosted, privacy-first QR code studio that runs entirely on Cloudflare Workers.**
-Design richly styled, standards-compliant QR codes for 20 content types, export them as SVG, PNG or JPG, generate hundreds at once from a CSV, and automate everything through a documented HTTP API – all from a single Worker deployment with no database, no account IDs and no third-party services.
+Design richly styled, standards-compliant QR codes for 20 content types, export them as SVG, PNG or JPG, generate hundreds at once from a CSV, create editable **dynamic links** (built in or through your own [Sink](https://github.com/miantiao-me/sink) instance) and automate everything through a documented HTTP API – all from a single Worker deployment configured through a password-protected admin page.
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/reichiClaw/QRflare)
 
-> The button clones this repository into your GitHub/GitLab account and deploys it with Cloudflare Workers Builds. No API tokens, account IDs or manual resource creation are needed. See [Deploying](#deploying-to-cloudflare) for details.
+> **Setup in three steps:** click the button → open your new site → open **Admin** and choose a password. That is all. No account IDs, API tokens, secrets or manual database creation – the one D1 database the app uses is provisioned automatically and every other option lives in the Admin area.
 
 <p align="center">
-  <img src="docs/screenshots/desktop-light.png" alt="EdgeQR Studio desktop light theme" width="49%" />
-  <img src="docs/screenshots/desktop-dark.png" alt="EdgeQR Studio desktop dark theme" width="49%" />
+  <img src="docs/screenshots/desktop-light.png" alt="FlareQR Studio desktop light theme" width="49%" />
+  <img src="docs/screenshots/desktop-dark.png" alt="FlareQR Studio desktop dark theme" width="49%" />
 </p>
 <p align="center">
-  <img src="docs/screenshots/mobile-content.png" alt="Mobile content editor" width="24%" />
-  <img src="docs/screenshots/mobile-design.png" alt="Mobile design tab" width="24%" />
-  <img src="docs/screenshots/mobile-export.png" alt="Mobile export tab" width="24%" />
+  <img src="docs/screenshots/admin-settings.png" alt="Admin settings" width="49%" />
+  <img src="docs/screenshots/mobile-content.png" alt="Mobile content editor" width="16%" />
+  <img src="docs/screenshots/mobile-design.png" alt="Mobile design tab" width="16%" />
+  <img src="docs/screenshots/mobile-export.png" alt="Mobile export tab" width="16%" />
 </p>
 
 ---
@@ -23,6 +24,9 @@ Design richly styled, standards-compliant QR codes for 20 content types, export 
 
 - [Features](#features)
 - [Privacy model](#privacy-model)
+- [Quick start](#quick-start)
+- [Admin area & settings](#admin-area--settings)
+- [Dynamic links](#dynamic-links)
 - [Supported content types](#supported-content-types)
 - [Output formats](#output-formats)
 - [Local development](#local-development)
@@ -31,7 +35,6 @@ Design richly styled, standards-compliant QR codes for 20 content types, export 
 - [HTTP API](#http-api)
 - [Batch generation (CSV)](#batch-generation-csv)
 - [Configuration reference](#configuration-reference)
-- [Optional: dynamic QR codes](#optional-dynamic-qr-codes)
 - [Security](#security)
 - [Browser compatibility](#browser-compatibility)
 - [Troubleshooting](#troubleshooting)
@@ -60,14 +63,20 @@ Design richly styled, standards-compliant QR codes for 20 content types, export 
 
 **Quality & safety**
 
-- A **Scan reliability** panel reports version, matrix size, error correction, bytes, remaining capacity, quiet zone, contrast and an overall status (Excellent / Good / Risky / Invalid), with actionable warnings for low contrast, inverted colours, transparency, tiny modules, oversized logos, low EC with a logo, complex gradients, mismatched finder colours and near-capacity payloads.
+- A **Scan reliability** panel reports version, matrix size, error correction, bytes, remaining capacity, quiet zone, contrast and an overall status (Excellent / Good / Risky / Invalid), with actionable warnings.
 - One-click **Safe defaults**. Invalid codes can never be exported.
 
 **Export**
 
 - SVG (true vector, self-contained, embedded logo), PNG (128–4096 px, transparency) and JPG (adjustable quality, transparency flattened onto a chosen colour).
-- Copy PNG to clipboard, copy SVG source, copy data URL, copy payload, sanitized file names whose extension always matches the real encoding.
+- Copy PNG to clipboard, copy SVG source, copy data URL, copy payload; sanitized file names whose extension always matches the real encoding.
 - Batch mode: CSV import, row-level validation with inline fixes, chunked generation in a Web Worker, cancellation, ZIP download with optional `manifest.json`.
+
+**Dynamic links & administration**
+
+- Editable short links: destination, label, expiry, on/off switch and scan limits (built-in provider) – reprint nothing when the target changes.
+- Two providers: **built in** (D1 in this Worker, privacy-preserving aggregate counters) or a **Sink instance** you already run, optionally with a separate short-link domain.
+- Password-protected **Admin** area with all settings in the UI: app name, dynamic-link provider, link domain, Sink connection (with a connection test), API token, CORS allowlist, raster limit, public/admin-only link management.
 
 **Platform**
 
@@ -79,11 +88,76 @@ Design richly styled, standards-compliant QR codes for 20 content types, export 
 ## Privacy model
 
 - **Generation is local.** The editor validates, encodes and renders every QR code in your browser. Nothing you type is sent anywhere, and the UI says so explicitly.
-- **The API is opt-in.** Only two actions transmit content to _your_ Worker: the "Render raster files via API" toggle in batch mode and any request you send to `/api/v1/*` yourself. The UI never labels these as local.
+- **The API is opt-in.** Only two actions transmit content to _your_ Worker: the "Render raster files via API" toggle in batch mode and any request you send to `/api/v1/*` yourself. Creating a dynamic link naturally sends its destination URL to your Worker (or your Sink instance).
 - **No logging of payloads.** The Worker logs method, path, status and duration – never bodies, payloads, secrets or tokens. Error responses never echo payloads.
 - **No third parties.** No analytics, tracking pixels, external fonts, CDNs or cookies. The Content Security Policy blocks any accidental external request.
-- **History is off by default.** The optional local history stores full designs (including content) in `localStorage` only after you enable it, warns that it may contain sensitive data, and can be cleared instantly.
-- **Sensitive content types** (OTP secrets, Wi-Fi passwords, contacts, payments) are flagged in the UI and treated identically – never stored automatically, never logged.
+- **History is off by default.** The optional local history stores full designs in `localStorage` only after you enable it, warns that it may contain sensitive data, and can be cleared instantly.
+- **Dynamic-link statistics are aggregate only.** The built-in provider stores per-link totals and per-day counts – no IP addresses, user agents, referrers, cookies or fingerprints.
+
+## Quick start
+
+1. Click **Deploy to Cloudflare** above and follow the prompts (Cloudflare forks the repository into your GitHub/GitLab account and builds it with Workers Builds).
+2. Open `https://flareqr-studio.<your-subdomain>.workers.dev`.
+3. Click **Admin** in the header, choose an admin password, and configure whatever you need – or simply start generating codes; the studio works without touching the admin area.
+
+Prefer the command line?
+
+```bash
+git clone https://github.com/reichiClaw/QRflare.git && cd QRflare
+npm ci
+npx wrangler login
+npm run deploy          # builds, provisions the D1 database, deploys
+```
+
+## Admin area & settings
+
+Only the **Admin** page requires a password; the generator, batch mode, history and API stay public (the API can optionally require a token).
+
+- **First run:** the first person to open Admin sets the password (minimum 10 characters). Set the `ADMIN_PASSWORD` secret instead if you want to define it before anyone can reach the site.
+- **Sessions:** logging in issues a signed 12-hour session kept in the tab's `sessionStorage`. Login attempts are rate limited.
+- **Password:** change it in Admin → Password (unless it comes from `ADMIN_PASSWORD`).
+
+Settings available in the UI (stored in the auto-provisioned D1 database):
+
+| Section       | Setting                                      | Effect                                                                                          |
+| ------------- | -------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| General       | Application name                             | Header, footer, page title, `/api/health`                                                       |
+| Dynamic links | Provider: Off / Built-in / Sink              | Where short links live (see [Dynamic links](#dynamic-links))                                    |
+|               | Public link domain (built-in)                | Domain encoded in QR codes, e.g. `https://qr.example.com` when you use a custom domain          |
+|               | Sink URL, Sink site token, Short link domain | Connection to your Sink instance and the domain its short links use; **Test connection** button |
+|               | Let anyone manage dynamic links              | Off (default): admin login required. On: the Links page works for everyone                      |
+| HTTP API      | Require a bearer token + token (Generate)    | Protects `/api/v1/*`; the bundled UI keeps working without a token                              |
+|               | Allowed cross-origin sites (CORS)            | Explicit allowlist; never `*`                                                                   |
+|               | Maximum raster width                         | Upper bound for API PNG/JPEG renders                                                            |
+
+Environment variables (`APP_NAME`, `API_TOKEN`, `CORS_ALLOWED_ORIGINS`, `MAX_RASTER_SIZE`) act as defaults; values saved in Admin override them. Secrets are never sent back to the browser – the UI only shows whether one is stored.
+
+## Dynamic links
+
+A dynamic QR code encodes a short URL that redirects to a destination you can change later. Enable it under **Admin → Settings → Dynamic links**:
+
+### Built-in provider
+
+- Links are stored in this Worker's D1 database and served from `/r/<code>` with a `302` redirect.
+- Per link: destination, label, enable/disable, expiry date, maximum scans, aggregate scan count and per-day counts.
+- If your Worker is reachable under a custom domain, enter it as **Public link domain** so QR codes encode `https://qr.example.com/r/<code>` instead of the `workers.dev` URL.
+
+### Sink provider
+
+If you already run [Sink](https://github.com/miantiao-me/sink), let FlareQR Studio create links there:
+
+1. Enter the **Sink URL** (where its dashboard lives, e.g. `https://s.example.com`).
+2. Enter the **Sink site token** – the value of Sink's `NUXT_SITE_TOKEN`.
+3. If your short links are served from a different domain than the dashboard, enter it as **Short link domain** (e.g. `https://go.example.com`). QR codes encode `https://go.example.com/<slug>`.
+4. Click **Test connection**, then **Save settings**.
+
+FlareQR Studio then proxies create/list/edit/delete to Sink's API (`/api/link/*`), shows Sink's dashboard link for statistics, and never stores link data itself. Sink returns HTTP 423 until its storage has been initialised once from its own dashboard; the UI surfaces that message.
+
+### Using a link
+
+Open **Admin → Dynamic links** (or the public **Links** page when you allow public management), create a link, click **Use in studio** – the short URL is loaded into the URL editor, ready to style and export.
+
+Full guide: [`docs/dynamic-links.md`](docs/dynamic-links.md).
 
 ## Supported content types
 
@@ -120,20 +194,16 @@ Every editor shows the exact encoded text in the collapsible **Raw payload** pan
 | PNG    | `image/png`     | `.png`    | 128–4096 px     | yes                                  | Browser: `<canvas>`; Worker: resvg (WebAssembly)                |
 | JPG    | `image/jpeg`    | `.jpg`    | 128–4096 px     | flattened onto a configurable colour | Browser: `<canvas>`; Worker: resvg + bundled TypeScript encoder |
 
-File signatures, MIME types and extensions are verified in the test suite (`tests/unit/raster-and-schema.test.ts`, `tests/workers/api.test.ts`, `tests/e2e/studio.spec.ts`).
-
 ## Local development
 
 Requirements: Node.js ≥ 20.19 and npm.
 
 ```bash
-npm ci                # install exactly the locked dependencies
-npm run dev           # Vite dev server + Worker API in the Cloudflare local runtime (workerd)
+npm ci
+npm run dev           # Vite dev server + Worker API + local D1 in the Cloudflare runtime (workerd)
 ```
 
-Open http://localhost:5173. The Worker API is served on the same origin (`/api/*`).
-
-Other scripts:
+Open http://localhost:5173. The Worker API (`/api/*`) and the local D1 database run on the same origin; the admin password you set locally is stored in `.wrangler/state`.
 
 | Script                 | What it does                                                                                       |
 | ---------------------- | -------------------------------------------------------------------------------------------------- |
@@ -142,7 +212,7 @@ Other scripts:
 | `npm run typecheck`    | TypeScript for the app, Worker and Node tooling projects                                           |
 | `npm run lint`         | ESLint (type-aware)                                                                                |
 | `npm run format`       | Prettier                                                                                           |
-| `npm test`             | Vitest: unit + round-trip tests (Node) and API tests inside workerd                                |
+| `npm test`             | Vitest: unit + round-trip tests (Node) and API/admin tests inside workerd with a real D1           |
 | `npm run test:browser` | Playwright: builds, serves through `wrangler dev` and runs desktop + mobile browser tests          |
 | `npm run check`        | typecheck + lint + format check + tests + production build                                         |
 | `npm run deploy`       | Build and deploy with Wrangler                                                                     |
@@ -154,15 +224,9 @@ Before the first `npm run test:browser` install a browser: `npx playwright insta
 
 ### One click
 
-Click the **Deploy to Cloudflare** button at the top. Cloudflare will:
-
-1. Fork/clone this repository into your GitHub or GitLab account.
-2. Create a Worker named `edgeqr-studio` connected to that repository (Workers Builds).
-3. Run the build and deploy commands below on every push.
+Click **Deploy to Cloudflare**. Cloudflare forks the repository, creates a Worker named `flareqr-studio` connected to it (Workers Builds), provisions the D1 database declared in `wrangler.jsonc` and deploys on every push.
 
 Build command: `npm run build` · Deploy command: `npx wrangler deploy` · Root directory: `/`
-
-Nothing in `wrangler.jsonc` needs to change. The Worker is served on `https://edgeqr-studio.<your-subdomain>.workers.dev`.
 
 ### From your machine
 
@@ -172,43 +236,42 @@ npx wrangler login     # once
 npm run deploy         # = npm run build && wrangler deploy
 ```
 
-`wrangler.jsonc` contains no `account_id`, `zone_id`, routes, bindings, secrets or placeholder IDs. Wrangler resolves your account from the login.
+`wrangler.jsonc` contains no `account_id`, `zone_id`, routes, secrets or resource IDs. The D1 binding (`DB`) has no `database_id` on purpose: Wrangler's automatic provisioning creates the database on the first deploy and the Worker creates its tables on first use.
 
 ### What gets deployed
 
 - `dist/client/*` as **Static Assets** with SPA fallback and a `_headers` file (CSP, caching).
 - `dist/worker/index.js` as the Worker, which runs only for `/api/*` and `/r/*` (`run_worker_first`).
-- The resvg WebAssembly module (~1 MB compressed) and four subset Inter fonts (~0.35 MB compressed) for server-side captions – well within the 3 MB free-plan limit.
+- The resvg WebAssembly module (~1 MB compressed) and four subset Inter fonts (~0.35 MB compressed) – about 1.3 MB gzipped in total, well within the 3 MB free-plan limit.
 
-> **Free plan note:** Workers on the Free plan have a 10 ms CPU limit per request. SVG generation and small PNG/JPEG renders fit comfortably; very large raster renders (2048–4096 px) may exceed it and return an error. The browser editor is unaffected because it renders locally. Paid plans (30 s CPU) render every size.
+> **Free plan note:** Workers on the Free plan have a 10 ms CPU limit per request. SVG generation and small PNG/JPEG renders fit comfortably; very large raster renders (2048–4096 px) may exceed it. The browser editor is unaffected because it renders locally.
 
 ## Custom domain
 
-A custom domain is optional. To add one after deployment:
+Optional. In the Cloudflare dashboard open **Workers & Pages → flareqr-studio → Settings → Domains & Routes → Add → Custom domain**, or add to `wrangler.jsonc`:
 
-1. Add the domain/zone to your Cloudflare account.
-2. In the Cloudflare dashboard open **Workers & Pages → edgeqr-studio → Settings → Domains & Routes → Add → Custom domain**, or add to `wrangler.jsonc`:
+```jsonc
+"routes": [{ "pattern": "qr.example.com", "custom_domain": true }]
+```
 
-   ```jsonc
-   "routes": [{ "pattern": "qr.example.com", "custom_domain": true }]
-   ```
-
-3. Redeploy (`npm run deploy`).
-
-If you also want to disable the `workers.dev` URL, set `"workers_dev": false` in `wrangler.jsonc`.
+Redeploy, then enter the domain as **Public link domain** in Admin → Settings so built-in dynamic links encode it. Set `"workers_dev": false` if you want to disable the `workers.dev` URL.
 
 ## HTTP API
 
-The API is versioned (`/api/v1`), validated with JSON Schema, documented in [`public/openapi.yaml`](public/openapi.yaml) (served at `/openapi.yaml`) and uses the same pipeline as the editor.
+Versioned (`/api/v1`), validated with JSON Schema, documented in [`public/openapi.yaml`](public/openapi.yaml) (served at `/openapi.yaml`) and using the same pipeline as the editor.
 
-| Method | Path               | Purpose                                                            |
-| ------ | ------------------ | ------------------------------------------------------------------ |
-| GET    | `/api/health`      | Version, build info, enabled features and limits (no secrets)      |
-| GET    | `/api/v1/schema`   | JSON Schema (draft 2020-12) of the request body + OpenAPI pointer  |
-| POST   | `/api/v1/validate` | Validate content and settings; returns payload, capacity, warnings |
-| POST   | `/api/v1/generate` | Returns SVG, PNG or JPEG bytes with `Content-Disposition`          |
+| Method           | Path                   | Purpose                                                    | Auth                        |
+| ---------------- | ---------------------- | ---------------------------------------------------------- | --------------------------- |
+| GET              | `/api/health`          | Version, build info, public features and limits            | none                        |
+| GET              | `/api/v1/schema`       | JSON Schema of the request body + OpenAPI pointer          | API token if enabled        |
+| POST             | `/api/v1/validate`     | Validate content and settings; payload, capacity, warnings | API token if enabled        |
+| POST             | `/api/v1/generate`     | SVG, PNG or JPEG bytes with `Content-Disposition`          | API token if enabled        |
+| GET/POST         | `/api/v1/links`        | List / create dynamic links (built-in or Sink)             | admin session unless public |
+| GET/PATCH/DELETE | `/api/v1/links/{code}` | Inspect / update / delete a link                           | admin session unless public |
+| GET              | `/r/{code}`            | Redirect (built-in provider)                               | none                        |
+| GET/POST         | `/api/admin/*`         | Status, setup, login, settings, Sink test, password        | admin session (see OpenAPI) |
 
-Request body (all fields except `content` optional):
+Request body for `validate`/`generate` (all fields except `content` optional):
 
 ```json
 {
@@ -235,7 +298,7 @@ Request body (all fields except `content` optional):
 ### curl examples
 
 ```bash
-BASE=https://edgeqr-studio.YOUR-SUBDOMAIN.workers.dev
+BASE=https://flareqr-studio.YOUR-SUBDOMAIN.workers.dev
 
 # Health
 curl -s $BASE/api/health | jq
@@ -248,26 +311,25 @@ curl -s -X POST $BASE/api/v1/validate \
 # PNG, 1024 px, rounded modules with a gradient
 curl -X POST $BASE/api/v1/generate \
   -H 'Content-Type: application/json' \
-  -d '{"content":{"type":"url","value":{"url":"https://example.com"}},"qr":{"errorCorrection":"H"},"style":{"moduleShape":"rounded","gradient":{"enabled":true,"stops":[{"offset":0,"color":"#2563EB"},{"offset":1,"color":"#14B8A6"}]}},"output":{"format":"png","size":1024,"filename":"example-qr"}}' \
-  --output example-qr.png
+  -d @examples/api/url-gradient-png.json --output example-qr.png
 
 # SVG with a frame and caption
-curl -X POST $BASE/api/v1/generate \
-  -H 'Content-Type: application/json' \
-  -d '{"content":{"type":"url","value":{"url":"https://example.com/menu"}},"style":{"layout":{"frame":{"enabled":true,"color":"#2563EB"},"caption":{"enabled":true,"text":"Scan for the menu","color":"#FFFFFF"}}},"output":{"format":"svg","filename":"menu"}}' \
-  --output menu.svg
+curl -X POST $BASE/api/v1/generate -H 'Content-Type: application/json' \
+  -d @examples/api/svg-frame-caption.json --output menu.svg
 
-# JPEG with transparency flattened onto light grey
-curl -X POST $BASE/api/v1/generate \
-  -H 'Content-Type: application/json' \
-  -d '{"content":{"type":"text","value":{"text":"Hello"}},"style":{"transparentBackground":true},"output":{"format":"jpeg","size":600,"jpegQuality":85,"jpegBackground":"#F8FAFC"}}' \
-  --output hello.jpg
+# With a bearer token (when "Require a bearer token" is enabled in Admin)
+curl -X POST $BASE/api/v1/generate -H "Authorization: Bearer $API_TOKEN" \
+  -H 'Content-Type: application/json' -d @examples/api/vcard.json --output ada.svg
 
-# With a bearer token (only when API_TOKEN is configured)
-curl -X POST $BASE/api/v1/generate -H "Authorization: Bearer $API_TOKEN" -H 'Content-Type: application/json' -d @examples/api/vcard.json --output ada.svg
+# Admin session + dynamic link (destination editable later)
+SESSION=$(curl -s -X POST $BASE/api/admin/login -H 'Content-Type: application/json' -d '{"password":"…"}' | jq -r .token)
+curl -s -X POST $BASE/api/v1/links -H "Authorization: Bearer $SESSION" -H 'Content-Type: application/json' \
+  -d '{"destination":"https://example.com/spring-menu","label":"Menu"}' | jq
+curl -s -X PATCH $BASE/api/v1/links/CODE -H "Authorization: Bearer $SESSION" -H 'Content-Type: application/json' \
+  -d '{"destination":"https://example.com/summer-menu"}' | jq
 ```
 
-More request bodies live in [`examples/api/`](examples/api/). Errors always use the same shape:
+Errors always use the same shape:
 
 ```json
 {
@@ -279,9 +341,7 @@ More request bodies live in [`examples/api/`](examples/api/). Errors always use 
 }
 ```
 
-Status codes: `400` validation/logo/dimension errors, `401` missing token, `413` body too large, `415` not JSON, `422` payload exceeds QR capacity, `404`/`405` routing.
-
-Response headers on generated images: `Content-Type` (real MIME), `Content-Disposition` (sanitized name, `?disposition=inline` to display), `Cache-Control: no-store`, `X-QR-Version`, `X-QR-Error-Correction`, `X-QR-Reliability`.
+Status codes: `400` validation/logo/dimension errors, `401` missing token or login, `413` body too large, `415` not JSON, `422` payload exceeds QR capacity, `429` too many login attempts, `502` Sink unreachable/unauthorized, `404`/`405` routing.
 
 ## Batch generation (CSV)
 
@@ -297,107 +357,79 @@ Open **Batch**, drop a CSV (or download the template). Reserved columns:
 | `errorCorrection` | `L`, `M`, `Q` or `H`                                                            |
 | `data`            | Shortcut for the primary field of the type (`url`, `text`, `number`, `ssid`, …) |
 
-Any other column is written into the content value (`ssid`, `password`, `firstName`, `phone`, `email`, …). Example ([`examples/batch-example.csv`](examples/batch-example.csv)):
-
-```csv
-name,type,format,size,preset,data,ssid,password,encryption,firstName,lastName,phone,email,organization
-website,url,png,1024,Electric blue & teal,https://example.com,,,,,,,,
-guest-wifi,wifi,png,1024,Classic black & white,,Cafe Guest,latte;art,WPA,,,,,
-ada,vcard,jpeg,1024,Rounded blue,,,,,Ada,Lovelace,+44 20 7946 0958,ada@example.com,Analytical Engines Ltd
-```
-
-Invalid rows are highlighted with the exact problem and can be edited inline. Generation runs in chunks (encoding in a Web Worker, rasterization on the main thread between frames), shows progress, can be cancelled, and produces a ZIP with an optional `manifest.json`. The default limit is 250 codes per batch (Settings). CSV contents stay in the browser unless you switch on **Render raster files via API**.
+Any other column is written into the content value. See [`examples/batch-example.csv`](examples/batch-example.csv). Invalid rows are highlighted and editable inline; generation runs in chunks (encoding in a Web Worker), shows progress, can be cancelled and produces a ZIP with an optional `manifest.json`. CSV contents stay in the browser unless you switch on **Render raster files via API**.
 
 ## Configuration reference
 
-All configuration is optional. Variables are set in `wrangler.jsonc` (`vars`) or the Cloudflare dashboard; secrets with `npx wrangler secret put NAME`.
+Everything below is optional. Prefer the Admin area; environment variables are for infrastructure-as-code setups (`wrangler.jsonc` → `vars`, or `wrangler secret put`).
 
-| Variable                       | Default         | Description                                                                                                                                           |
-| ------------------------------ | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `APP_NAME`                     | `EdgeQR Studio` | Name reported by `/api/health`.                                                                                                                       |
-| `CORS_ALLOWED_ORIGINS`         | _(empty)_       | Comma-separated origins allowed to call the API cross-origin. Empty = same-origin only; no wildcard is ever emitted.                                  |
-| `API_TOKEN` (secret)           | _(unset)_       | When set, `/api/v1/*` requires `Authorization: Bearer <token>`. Same-origin requests from the bundled UI are exempt (see [SECURITY.md](SECURITY.md)). |
-| `MAX_RASTER_SIZE`              | `4096`          | Maximum PNG/JPEG width the API renders.                                                                                                               |
-| `DYNAMIC_QR_ENABLED`           | `false`         | Enables the optional dynamic module (requires the `DYNAMIC_DB` D1 binding).                                                                           |
-| `DYNAMIC_ADMIN_TOKEN` (secret) | _(unset)_       | Admin token for the dynamic module's API.                                                                                                             |
+| Variable                  | Default          | Description                                                                                       |
+| ------------------------- | ---------------- | ------------------------------------------------------------------------------------------------- |
+| `ADMIN_PASSWORD` (secret) | _(unset)_        | Admin password. When set, the first-run setup screen is skipped and Admin → Password is disabled. |
+| `APP_NAME`                | `FlareQR Studio` | Default application name (overridable in Admin).                                                  |
+| `API_TOKEN` (secret)      | _(unset)_        | Default bearer token requirement for `/api/v1/*` (overridable in Admin).                          |
+| `CORS_ALLOWED_ORIGINS`    | _(empty)_        | Comma-separated default CORS allowlist (overridable in Admin).                                    |
+| `MAX_RASTER_SIZE`         | `4096`           | Default maximum PNG/JPEG width for the API (overridable in Admin).                                |
+
+Binding: `DB` (D1, auto-provisioned). Without it the studio and API still work, but the Admin area and built-in links are unavailable unless `ADMIN_PASSWORD` is set.
 
 Local overrides for development go in `.dev.vars` (git-ignored; see `.dev.vars.example`).
 
-Client-side settings (theme, history opt-in, batch limit, raw-payload panel) live in the browser only.
-
-## Optional: dynamic QR codes
-
-Static codes need no infrastructure. If you want **editable short links** (`/r/<code>` redirects whose destination can change after printing, with expiry, enable/disable, scan limits and privacy-preserving aggregate counters), enable the D1-backed module described in [`docs/dynamic-qr.md`](docs/dynamic-qr.md):
-
-```bash
-npx wrangler d1 create edgeqr-dynamic          # copy the database_id into wrangler.jsonc (see wrangler.dynamic.example.jsonc)
-npx wrangler secret put DYNAMIC_ADMIN_TOKEN
-npm run deploy:dynamic                         # applies migrations via the binding, then deploys
-```
-
-The module stores **no IP addresses, user agents, referrers or cookies** – only per-link totals and per-day counts. When disabled (the default) the entire static generator, all export formats and the API work exactly the same.
-
 ## Security
 
-Highlights (full details and reporting instructions in [SECURITY.md](SECURITY.md)):
+Highlights (details and reporting instructions in [SECURITY.md](SECURITY.md)):
 
+- Admin password hashed with PBKDF2-SHA256 and a random salt; HMAC-signed 12-hour sessions; login rate limiting; constant-time comparisons; secrets never returned to the browser.
 - Strict Zod validation on every request; unknown fields rejected; body limit 1.6 MB; payload limit 4000 characters; output 128–4096 px.
-- Logos: MIME allowlist, magic-byte verification, 1 MB limit, and an allowlist-based SVG sanitizer (own strict XML parser) that removes scripts, event handlers, `foreignObject`, external references, `@import`, entities and DTD subsets. The Worker never fetches remote logos.
-- Generated SVG escapes all user text and embeds only validated `data:` URIs.
-- Strict CSP (`default-src 'self'`, no inline scripts/styles), `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, `Permissions-Policy`, `frame-ancestors 'none'`, `Cross-Origin-Opener-Policy`, immutable caching for fingerprinted assets, `no-store` for API responses.
-- No `eval`, no `innerHTML` for user content (the preview is an `<img>` of an object URL), no cookies, no third-party requests.
-- Dependencies audited with `npm audit` and kept current by Dependabot (`.github/dependabot.yml`).
+- Logos: MIME allowlist, magic-byte verification, 1 MB limit, allowlist-based SVG sanitizer. The Worker never fetches remote logos.
+- Strict CSP (`default-src 'self'`, no inline scripts/styles), `nosniff`, `no-referrer`, `Permissions-Policy`, `frame-ancestors 'none'`, immutable caching for fingerprinted assets, `no-store` for API responses.
+- Dynamic-link destinations must be `http(s)` URLs; redirects carry `Referrer-Policy: no-referrer`; link management is admin-only unless you opt in to public access.
+- Dependencies audited with `npm audit` and kept current by Dependabot.
 
 ## Browser compatibility
 
-Tested with Chromium (desktop + mobile emulation) in CI. The app uses standard APIs available in current Chrome, Edge, Firefox and Safari: Canvas, Blob/Object URLs, Web Workers, `dialog`, `structuredClone`, Clipboard API (image copy requires Chromium or Safari 13.1+; a clear message is shown otherwise), `createImageBitmap` (logo down-scaling). Service-worker offline support requires HTTPS or `localhost`.
+Tested with Chromium (desktop + mobile emulation) in CI. Uses standard APIs available in current Chrome, Edge, Firefox and Safari: Canvas, Blob/Object URLs, Web Workers, `dialog`, `structuredClone`, Clipboard API (image copy requires Chromium or Safari 13.1+), `createImageBitmap`. Service-worker offline support requires HTTPS or `localhost`.
 
 ## Troubleshooting
 
-| Symptom                                                                        | Fix                                                                                                                                                 |
-| ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `npm install` fails with `Cannot read properties of null (reading 'edgesOut')` | Known npm 10 bug with nested peer dependencies. Use `npm ci` (uses the committed lockfile) or npm ≥ 11 (`npx npm@11 install`).                      |
-| `This Worker requires compatibility date …` in tests                           | The pinned Miniflare/workerd is too old. Run `npm ci` – `package.json` overrides align them with Wrangler's workerd.                                |
-| Large PNG/JPEG API requests return an error on the Free plan                   | 10 ms CPU limit. Use SVG, smaller sizes, render in the browser, or upgrade the plan.                                                                |
-| "Copy PNG" is disabled                                                         | The browser does not support `ClipboardItem` for images (Firefox). Use Download or Copy data URL.                                                   |
-| A scanner cannot read a styled code                                            | Check the **Scan reliability** panel and apply **Safe defaults**. Prefer error correction H with logos, dark-on-light colours, 4-module quiet zone. |
-| `npm run test:browser` fails to start                                          | Install a browser: `npx playwright install chromium`. Port 4173 must be free.                                                                       |
+| Symptom                                                                        | Fix                                                                                                                                                       |
+| ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Admin says "not available on this deployment"                                  | The `DB` D1 binding is missing (e.g. removed from `wrangler.jsonc`). Restore it and redeploy, or set `ADMIN_PASSWORD`.                                    |
+| Somebody else set the admin password before you                                | Set the `ADMIN_PASSWORD` secret (it takes precedence) or delete the `kv` rows `admin.password`/`admin.session_secret` in the D1 console and set it again. |
+| Sink test fails with "storage not ready"                                       | Open your Sink dashboard → Links once (Sink initialises its storage lazily), then test again.                                                             |
+| Sink test fails with "rejected the site token"                                 | The token must equal Sink's `NUXT_SITE_TOKEN` (≥ 8 characters).                                                                                           |
+| `npm install` fails with `Cannot read properties of null (reading 'edgesOut')` | Known npm 10 bug. Use `npm ci` (committed lockfile) or npm ≥ 11.                                                                                          |
+| `This Worker requires compatibility date …` in tests                           | Run `npm ci` – `package.json` overrides align Miniflare/workerd with Wrangler's version.                                                                  |
+| Large PNG/JPEG API requests fail on the Free plan                              | 10 ms CPU limit. Use SVG, smaller sizes, render in the browser, or upgrade the plan.                                                                      |
+| A scanner cannot read a styled code                                            | Check **Scan reliability** and apply **Safe defaults**. Prefer error correction H with logos and a 4-module quiet zone.                                   |
 
 ## Customising
 
-### Branding
-
-Edit [`src/config/branding.ts`](src/config/branding.ts) (name, description, repository URL, colours, tagline) and replace `public/icons/icon.svg`, then run `npm run icons`. Update `public/manifest.webmanifest`, the `<title>`/meta tags in `index.html` and the Tailwind tokens in `src/app/styles/app.css` if you change colours.
-
-### Adding a content type
-
-See [`docs/adding-a-content-type.md`](docs/adding-a-content-type.md). In short: add a Zod schema (`src/shared/content/schemas.ts`), a builder (`src/shared/content/builders.ts`), registry metadata (`src/shared/content/registry.ts`), a form (`src/app/components/content/forms.tsx` + `ContentPanel.tsx`), a primary CSV column (`src/shared/batch/rows.ts`) and tests. The API, batch mode, docs and round-trip tests pick it up automatically.
-
-### Adding a visual preset
-
-Append an entry to `BUILT_IN_PRESETS` in [`src/shared/style/presets.ts`](src/shared/style/presets.ts). Presets are partial styles merged over the defaults, and every built-in preset is round-trip decoded in the test suite.
+- **Branding:** edit [`src/config/branding.ts`](src/config/branding.ts) (default name, repository URL, colours, tagline), replace `public/icons/icon.svg` and run `npm run icons`. The display name can also be changed at runtime in Admin → Settings.
+- **Adding a content type:** see [`docs/adding-a-content-type.md`](docs/adding-a-content-type.md).
+- **Adding a visual preset:** append to `BUILT_IN_PRESETS` in [`src/shared/style/presets.ts`](src/shared/style/presets.ts); every preset is round-trip decoded in the tests.
 
 ## Updating dependencies
 
 ```bash
 npm outdated
-npm update                 # respects semver ranges
-npm audit --omit=dev       # runtime dependencies
-npm run check              # typecheck, lint, tests, build
-npm run test:browser
+npm update
+npm audit --omit=dev
+npm run check && npm run test:browser
 ```
 
-Dependabot opens weekly PRs for npm and GitHub Actions. When bumping `wrangler`, also bump `@cloudflare/vite-plugin`, `@cloudflare/vitest-pool-workers` and the `overrides` in `package.json` so all three share one workerd version, and consider moving `compatibility_date` forward (it must not exceed the date supported by the bundled workerd).
+Dependabot opens weekly PRs. When bumping `wrangler`, also bump `@cloudflare/vite-plugin`, `@cloudflare/vitest-pool-workers` and the `overrides` in `package.json` so all share one workerd version.
 
 ## Architecture
 
 ```
 src/
-├── config/branding.ts           central branding
+├── config/branding.ts           default branding
 ├── shared/                      runtime-agnostic core (browser + Worker + tests)
 │   ├── qr/                      Nayuki encoder (vendored ESM) + typed wrapper
 │   ├── content/                 Zod schemas, payload builders, registry (20 types)
 │   ├── style/                   style/output schemas, colour maths, presets
+│   ├── settings/schema.ts       admin settings schema shared with the UI
 │   ├── render/svg.ts            matrix + style → self-contained SVG
 │   ├── quality/reliability.ts   scan-reliability evaluation
 │   ├── security/                XML parser, SVG sanitizer, data-URL & filename safety
@@ -405,16 +437,19 @@ src/
 │   ├── batch/                   CSV parser, row → request mapping
 │   ├── api/schemas.ts           API request/response schemas, JSON Schema
 │   └── pipeline.ts              content → payload → matrix → SVG → report
-├── worker/                      Cloudflare Worker (router, API, raster via resvg-wasm, dynamic module)
-└── app/                         React UI (stores, hooks, components, batch Web Worker)
+├── worker/                      Cloudflare Worker
+│   ├── index.ts                 router, security headers, CORS, API token
+│   ├── api.ts / raster.ts       QR API, resvg-wasm rasterization
+│   ├── db.ts / settings.ts      auto-created D1 schema, settings store
+│   ├── admin.ts                 password setup/login, sessions, settings endpoints
+│   ├── links.ts / sink.ts       dynamic links (built-in provider, Sink client)
+└── app/                         React UI (studio, batch, history, links, admin)
 tests/
 ├── unit/                        builders, security, quality, raster/schema, round-trip (ZXing + jsQR)
-├── workers/                     API + dynamic module tests inside workerd
-└── e2e/                         Playwright desktop + mobile
+├── workers/                     API, admin, links and Sink tests inside workerd with D1
+└── e2e/                         Playwright desktop + mobile (studio and admin flows)
 ```
-
-The encoder produces a boolean matrix; the renderer turns it into SVG without touching module positions; the browser rasterizes the SVG with `<canvas>` and the Worker with resvg. Every output path is verified by decoding with an independent decoder (ZXing-C++ via WebAssembly, plus jsQR for classic styles).
 
 ## License
 
-[MIT](LICENSE). Bundled third-party components: Nayuki QR Code generator (MIT), Inter font subset (SIL OFL 1.1, `src/worker/fonts/LICENSE-Inter.txt`), resvg (MPL-2.0, via `@resvg/resvg-wasm`), Lucide icons (ISC).
+[MIT](LICENSE). Bundled third-party components: Nayuki QR Code generator (MIT), Inter font subset (SIL OFL 1.1), resvg (MPL-2.0, via `@resvg/resvg-wasm`), Lucide icons (ISC). Sink is a separate project by miantiao-me (MIT) that FlareQR Studio can talk to; it is not bundled.

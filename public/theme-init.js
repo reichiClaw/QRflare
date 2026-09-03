@@ -2,7 +2,7 @@
    script so the Content Security Policy can stay free of 'unsafe-inline'. */
 (function () {
   try {
-    var mode = localStorage.getItem('edgeqr:theme') || 'system';
+    var mode = localStorage.getItem('flareqr:theme') || 'system';
     var dark =
       mode === 'dark' || (mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
     document.documentElement.classList.toggle('dark', dark);

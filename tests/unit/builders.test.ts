@@ -440,11 +440,11 @@ describe('otpauth', () => {
 
 describe('social / app links / custom URI', () => {
   it('builds profile URLs from handles and keeps full URLs', () => {
-    expect(payload({ type: 'social', value: { network: 'instagram', handle: '@edgeqr' } })).toBe(
-      'https://www.instagram.com/edgeqr',
+    expect(payload({ type: 'social', value: { network: 'instagram', handle: '@flareqr' } })).toBe(
+      'https://www.instagram.com/flareqr',
     );
-    expect(payload({ type: 'social', value: { network: 'x', handle: 'edgeqr' } })).toBe(
-      'https://x.com/edgeqr',
+    expect(payload({ type: 'social', value: { network: 'x', handle: 'flareqr' } })).toBe(
+      'https://x.com/flareqr',
     );
     expect(payload({ type: 'social', value: { network: 'youtube', handle: '@channel' } })).toBe(
       'https://www.youtube.com/@channel',
@@ -455,12 +455,12 @@ describe('social / app links / custom URI', () => {
     expect(payload({ type: 'social', value: { network: 'signal', handle: '+1 415 555 0132' } })).toBe(
       'https://signal.me/#p/+14155550132',
     );
-    expect(payload({ type: 'social', value: { network: 'telegram', handle: 'edgeqr' } })).toBe(
-      'https://t.me/edgeqr',
+    expect(payload({ type: 'social', value: { network: 'telegram', handle: 'flareqr' } })).toBe(
+      'https://t.me/flareqr',
     );
-    expect(payload({ type: 'social', value: { network: 'custom', handle: 'mastodon.social/@edgeqr' } })).toBe(
-      'https://mastodon.social/@edgeqr',
-    );
+    expect(
+      payload({ type: 'social', value: { network: 'custom', handle: 'mastodon.social/@flareqr' } }),
+    ).toBe('https://mastodon.social/@flareqr');
     expect(issues({ type: 'social', value: { network: 'custom', handle: 'nope' } })[0]).toMatch(
       /profile URL/,
     );

@@ -16,7 +16,7 @@ import { useEditor } from '../../store/editor';
 import { Slider, Switch } from '../ui/Field';
 import { SectionTitle } from '../ui/Primitives';
 
-const SAMPLE = encodeQr('EdgeQR', { errorCorrection: 'L', boostErrorCorrection: false });
+const SAMPLE = encodeQr('FlareQR', { errorCorrection: 'L', boostErrorCorrection: false });
 
 function thumbnail(patch: Record<string, unknown>): string {
   const style = resolveStyle({ foreground: '#0F172A', background: '#FFFFFF', ...patch });

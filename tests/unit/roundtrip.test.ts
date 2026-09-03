@@ -30,12 +30,12 @@ async function roundTrip(
 
 describe('round trip: encode → render → independent decode', () => {
   it('decodes plain ASCII with default style', async () => {
-    const { decoded } = await roundTrip('https://example.com/edgeqr');
-    expect(decoded).toBe('https://example.com/edgeqr');
+    const { decoded } = await roundTrip('https://example.com/flareqr');
+    expect(decoded).toBe('https://example.com/flareqr');
   });
 
   it.each(ERROR_CORRECTION_LEVELS)('decodes at error correction level %s', async (level) => {
-    const payload = `Level ${level} – EdgeQR Studio round trip 0123456789`;
+    const payload = `Level ${level} – FlareQR Studio round trip 0123456789`;
     const { decoded, encoded } = await roundTrip(payload, {}, level);
     expect(encoded.errorCorrection).toBe(level);
     expect(decoded).toBe(payload);
@@ -55,7 +55,7 @@ describe('round trip: encode → render → independent decode', () => {
   it.each(BUILT_IN_PRESETS.map((p) => [p.name, p] as const))(
     'decodes with preset "%s"',
     async (_name, preset) => {
-      const payload = 'https://edgeqr.example/presets';
+      const payload = 'https://flareqr.example/presets';
       const { decoded } = await roundTrip(payload, preset.style, 'Q');
       expect(decoded).toBe(payload);
     },

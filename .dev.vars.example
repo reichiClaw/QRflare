@@ -1,14 +1,11 @@
-# Copy to `.dev.vars` for local development (git-ignored). All values are optional.
+# Copy to `.dev.vars` for local development (git-ignored). Every value is optional –
+# all of them can also be configured in the Admin area of the running app.
 
-# Require a bearer token for /api/v1/* (the bundled UI stays exempt).
-# API_TOKEN=change-me
+# Skip the first-run password screen by defining the admin password here (production: `wrangler secret put ADMIN_PASSWORD`).
+# ADMIN_PASSWORD=change-me-please
 
-# Allow cross-origin API calls from these origins (comma-separated). Empty = same-origin only.
+# Defaults for settings that the Admin area can override:
+# APP_NAME=FlareQR Studio
+# API_TOKEN=require-this-bearer-token-for-the-api
 # CORS_ALLOWED_ORIGINS=https://app.example.com
-
-# Maximum raster width the API renders.
 # MAX_RASTER_SIZE=4096
-
-# Optional dynamic QR module (also needs a D1 binding named DYNAMIC_DB, see docs/dynamic-qr.md).
-# DYNAMIC_QR_ENABLED=true
-# DYNAMIC_ADMIN_TOKEN=change-me-too

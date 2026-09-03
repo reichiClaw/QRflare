@@ -8,7 +8,7 @@ Supported: the latest release on the `main` branch.
 
 ## Threat model
 
-EdgeQR Studio is a stateless, self-hosted generator. The assets it protects are:
+FlareQR Studio is a stateless, self-hosted generator. The assets it protects are:
 
 1. **The content users encode** – potentially secrets (OTP seeds, Wi-Fi passwords), personal data (contacts) or payment details.
 2. **The deployment itself** – abuse of the API, or malicious uploads that could execute in a viewer's browser.
@@ -21,7 +21,16 @@ EdgeQR Studio is a stateless, self-hosted generator. The assets it protects are:
 - The Worker logs `{method, path, status, ms}` only. No request bodies, payloads, tokens or headers are logged, and error responses never echo payload text.
 - API responses carry `Cache-Control: no-store`; the service worker never caches `/api/*` or `/r/*`.
 - Local history is opt-in, stored only in `localStorage`, clearly labelled as potentially sensitive, and clearable with one click. Presets never include logo image data.
-- The optional dynamic module stores aggregate counters only – no IP addresses, user agents, referrers, cookies or fingerprints.
+- Built-in dynamic links store aggregate counters only – no IP addresses, user agents, referrers, cookies or fingerprints. With the Sink provider, link data lives in your Sink instance; this Worker only proxies admin operations and never stores the Sink token anywhere except the D1 settings row.
+
+### Admin area
+
+- Only the Admin page (settings, dynamic-link management, password) is protected; the generator and API stay public by design.
+- The password is either the `ADMIN_PASSWORD` variable or a PBKDF2-SHA256 hash (25 000 iterations, 16-byte random salt) stored in D1 when the first visitor completes setup. Setup is only possible while no password exists; a race between two first visitors is guarded by a second existence check. Operators who want to avoid the first-visitor window set `ADMIN_PASSWORD` before sharing the URL.
+- Sessions are stateless tokens (`base64url(payload).HMAC-SHA256`) with a 12-hour expiry, signed with a random 32-byte secret stored in D1 (or derived from `ADMIN_PASSWORD` when no database is bound). They are kept in the tab's `sessionStorage`, never in cookies, so CSRF does not apply.
+- Login attempts are rate limited (10 per 10 minutes per client address, in isolate memory only). Comparisons use constant-time equality.
+- Settings responses redact secrets (API token, Sink token) – the UI only learns whether one is set. Saving with an empty secret field keeps the stored value; clearing is explicit.
+- Dynamic-link management requires an admin session unless the operator explicitly enables public access. Destinations must be `http(s)` URLs.
 
 ### Input validation
 
@@ -54,6 +63,7 @@ EdgeQR Studio is a stateless, self-hosted generator. The assets it protects are:
 ### Supply chain
 
 - `package-lock.json` is committed; `npm ci` installs exact versions.
+- The D1 database is provisioned by Wrangler; the schema is created with idempotent `CREATE TABLE IF NOT EXISTS` statements at runtime, so no migration tooling runs with elevated privileges.
 - Runtime dependencies are deliberately few: `react`, `react-dom`, `zod`, `zustand`, `lucide-react`, `fflate`, `@resvg/resvg-wasm`. The QR encoder and JPEG encoder are bundled source, not npm packages.
 - Dependabot (`.github/dependabot.yml`) opens weekly update PRs for npm and GitHub Actions; CI runs `npm audit --omit=dev` and the full check suite.
 - Nothing in the Worker depends on Node.js built-ins or native binaries; the only WebAssembly is resvg, loaded as a compiled module.

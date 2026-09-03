@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for your interest in EdgeQR Studio. This document explains how to set up a development environment, the project conventions and what a good pull request looks like.
+Thanks for your interest in FlareQR Studio. This document explains how to set up a development environment, the project conventions and what a good pull request looks like.
 
 ## Development setup
 

@@ -13,7 +13,7 @@ import { buildInfo } from './scripts/build-info.ts';
  */
 function serviceWorkerPlugin(): Plugin {
   return {
-    name: 'edgeqr-service-worker',
+    name: 'flareqr-service-worker',
     apply: 'build',
     generateBundle(_options, bundle) {
       if (this.environment.name !== 'client') return;
@@ -31,8 +31,8 @@ function serviceWorkerPlugin(): Plugin {
         '/icons/icon-192.png',
         '/icons/icon-512.png',
       );
-      const source = `/* EdgeQR Studio service worker (generated at build time) */
-const CACHE = 'edgeqr-${buildInfo.version}-${buildInfo.commit}';
+      const source = `/* FlareQR Studio service worker (generated at build time) */
+const CACHE = 'flareqr-${buildInfo.version}-${buildInfo.commit}';
 const PRECACHE = ${JSON.stringify([...new Set(precache)])};
 
 self.addEventListener('install', (event) => {

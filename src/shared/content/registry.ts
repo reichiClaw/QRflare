@@ -47,7 +47,7 @@ export const CONTENT_REGISTRY = {
     group: 'basic',
     icon: 'Type',
     defaultValue: { text: '' },
-    example: { text: 'Hello from EdgeQR Studio ✨' },
+    example: { text: 'Hello from FlareQR Studio ✨' },
     sensitive: false,
   }),
   url: meta({

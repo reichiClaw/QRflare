@@ -196,7 +196,7 @@ export async function runBatch(rows: BatchRowResult[], options: BatchOptions): P
     files['manifest.json'] = strToU8(
       JSON.stringify(
         {
-          generator: 'EdgeQR Studio',
+          generator: 'FlareQR Studio',
           generatedAt: new Date().toISOString(),
           count: manifestItems.length,
           failures,

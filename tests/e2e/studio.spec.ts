@@ -42,7 +42,7 @@ async function download(page: Page, format: 'PNG' | 'JPG' | 'SVG') {
   return { name: dl.suggestedFilename(), bytes: Buffer.concat(chunks) };
 }
 
-test.describe('EdgeQR Studio', () => {
+test.describe('FlareQR Studio', () => {
   test('creates a URL QR code and downloads PNG, JPG and SVG with genuine data', async ({ page }) => {
     const errors = collectConsoleErrors(page);
     await openStudio(page);

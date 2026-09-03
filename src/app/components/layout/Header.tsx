@@ -1,12 +1,25 @@
-import { History, Layers, Monitor, Moon, QrCode, Redo2, Settings, Sun, Undo2 } from 'lucide-react';
+import {
+  History,
+  Layers,
+  Link2,
+  Monitor,
+  Moon,
+  QrCode,
+  Redo2,
+  Settings,
+  ShieldCheck,
+  Sun,
+  Undo2,
+} from 'lucide-react';
 
 import { branding } from '../../../config/branding';
 import { cn } from '../../lib/cn';
 import { selectCanRedo, selectCanUndo, useEditor } from '../../store/editor';
+import { useServer } from '../../store/server';
 import { useSettings, type ThemeMode } from '../../store/settings';
 import { Button } from '../ui/Button';
 
-export type AppView = 'studio' | 'batch' | 'history' | 'dynamic';
+export type AppView = 'studio' | 'batch' | 'history' | 'links' | 'admin';
 
 const THEME_CYCLE: ThemeMode[] = ['light', 'dark', 'system'];
 const THEME_ICON = { light: Sun, dark: Moon, system: Monitor };
@@ -16,13 +29,12 @@ export function Header({
   view,
   onViewChange,
   onOpenSettings,
-  dynamicAvailable,
 }: {
   view: AppView;
   onViewChange: (view: AppView) => void;
   onOpenSettings: () => void;
-  dynamicAvailable: boolean;
 }) {
+  const features = useServer((s) => s.features);
   const theme = useSettings((s) => s.theme);
   const update = useSettings((s) => s.update);
   const canUndo = useEditor(selectCanUndo);
@@ -36,14 +48,17 @@ export function Header({
     { id: 'batch', label: 'Batch', icon: Layers },
     { id: 'history', label: 'History', icon: History },
   ];
-  if (dynamicAvailable) nav.push({ id: 'dynamic', label: 'Dynamic links', icon: Layers });
+  if (features.dynamicLinks.provider !== 'off') nav.push({ id: 'links', label: 'Links', icon: Link2 });
+  nav.push({ id: 'admin', label: 'Admin', icon: ShieldCheck });
 
   return (
     <header className="sticky top-0 z-30 border-b border-default bg-surface/85 backdrop-blur supports-[backdrop-filter]:bg-surface/70">
       <div className="mx-auto flex h-14 max-w-[1600px] items-center gap-3 px-3 sm:px-5">
         <a href="/" className="flex items-center gap-2 rounded-lg" aria-label={`${branding.name} home`}>
           <img src={branding.logoPath} alt="" width={28} height={28} className="rounded-md" />
-          <span className="hidden text-sm font-semibold tracking-tight sm:inline">{branding.name}</span>
+          <span className="hidden text-sm font-semibold tracking-tight sm:inline">
+            {features.appName || branding.name}
+          </span>
         </a>
 
         <nav aria-label="Primary" className="ml-2 flex items-center gap-1 rounded-xl bg-surface-3 p-1">

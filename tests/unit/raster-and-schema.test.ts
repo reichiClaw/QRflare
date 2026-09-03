@@ -154,7 +154,7 @@ describe('API and style schemas', () => {
       logo: { ...DEFAULT_STYLE.logo, enabled: true, dataUrl: 'data:image/png;base64,QUJD' },
     };
     const file = {
-      app: 'edgeqr-studio',
+      app: 'flareqr-studio',
       version: 1,
       presets: [{ id: 'x', name: 'X', style: styleToPresetStyle(withLogo) }],
     };

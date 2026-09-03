@@ -26,7 +26,7 @@
 
 
 /*
- * EdgeQR Studio note: this file is Project Nayuki's reference TypeScript
+ * FlareQR Studio note: this file is Project Nayuki's reference TypeScript
  * implementation, converted from a `namespace` to a flat ES module so it can be
  * bundled for browsers and Cloudflare Workers without any changes to the
  * algorithms. Ecc and Mode are exported as top-level classes instead of

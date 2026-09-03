@@ -16,7 +16,7 @@ export const PresetSchema = z.object({
 export type Preset = z.infer<typeof PresetSchema>;
 
 export const PresetFileSchema = z.object({
-  app: z.literal('edgeqr-studio').optional(),
+  app: z.literal('flareqr-studio').optional(),
   version: z.literal(1),
   presets: z.array(PresetSchema).max(200),
 });
@@ -79,7 +79,7 @@ export const BUILT_IN_PRESETS: Preset[] = [
   preset({
     id: 'electric',
     name: 'Electric blue & teal',
-    description: 'The EdgeQR signature gradient.',
+    description: 'The FlareQR signature gradient.',
     style: {
       moduleShape: 'extra-rounded',
       finderFrameShape: 'extra-rounded',

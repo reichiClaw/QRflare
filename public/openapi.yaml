@@ -1,30 +1,34 @@
 openapi: 3.1.0
 info:
-  title: EdgeQR Studio API
+  title: FlareQR Studio API
   version: 1.0.0
   summary: Generate standards-compliant, styled QR codes as SVG, PNG or JPEG.
   description: |
-    EdgeQR Studio exposes a small, versioned HTTP API next to its web UI. The API uses
+    FlareQR Studio exposes a small, versioned HTTP API next to its web UI. The API uses
     the same validation, payload builders, encoder and renderer as the browser editor.
 
     * Requests are validated with a strict JSON schema (`GET /api/v1/schema`).
     * Responses carry `Cache-Control: no-store`; QR payloads are never logged.
     * Cross-origin requests are rejected unless the origin is listed in `CORS_ALLOWED_ORIGINS`.
-    * When the `API_TOKEN` variable is set, `/api/v1/*` requires `Authorization: Bearer <token>`
-      (the bundled frontend, which renders locally anyway, is exempt).
+    * When a bearer token is required (Admin → Settings or the `API_TOKEN` variable), `/api/v1/generate`,
+      `/api/v1/validate` and `/api/v1/schema` need `Authorization: Bearer <token>` (the bundled frontend is exempt).
+    * `/api/v1/links` requires an admin session token (from `POST /api/admin/login`) unless the
+      administrator enabled public link management.
   license:
     name: MIT
     identifier: MIT
 servers:
-  - url: https://edgeqr-studio.YOUR-SUBDOMAIN.workers.dev
+  - url: https://flareqr-studio.YOUR-SUBDOMAIN.workers.dev
     description: Your Cloudflare Workers deployment
   - url: http://localhost:5173
     description: Local development (npm run dev)
 tags:
   - name: system
   - name: qr
-  - name: dynamic
-    description: Optional D1-backed short links (disabled by default).
+  - name: links
+    description: Dynamic short links (built-in D1 provider or a Sink instance), enabled in the Admin area.
+  - name: admin
+    description: Password-protected administration (setup, login, settings).
 security:
   - {}
   - bearerAuth: []
@@ -43,12 +47,12 @@ paths:
                 $ref: '#/components/schemas/Health'
               example:
                 status: ok
-                name: EdgeQR Studio
+                name: FlareQR Studio
                 version: 1.0.0
                 commit: 81f217a18563
                 buildTime: 2026-09-03T12:00:00.000Z
                 api: { version: v1, openapi: /openapi.yaml }
-                features: { dynamicQr: false, apiTokenRequired: false }
+                features: { appName: FlareQR Studio, storage: true, adminSetupRequired: false, adminAvailable: true, apiTokenRequired: false, dynamicLinks: { provider: builtin, publicAccess: false, linkBaseUrl: https://qr.example.com } }
                 limits: { maxRequestBodyBytes: 1600000, maxRasterSize: 4096, maxPayloadChars: 4000 }
   /api/v1/schema:
     get:
@@ -127,21 +131,21 @@ paths:
         '422': { $ref: '#/components/responses/Capacity' }
   /r/{code}:
     get:
-      tags: [dynamic]
+      tags: [links]
       summary: Redirect a dynamic short link
       parameters:
         - in: path
           name: code
           required: true
-          schema: { type: string, pattern: '^[A-Za-z0-9_-]{4,32}$' }
+          schema: { type: string, pattern: '^[A-Za-z0-9_-]{2,64}$' }
       responses:
         '302': { description: Redirect to the current destination. }
-        '404': { description: Unknown, disabled, expired or exhausted link (HTML page). }
-  /api/v1/dynamic/links:
+        '404': { description: Unknown, disabled, expired or exhausted link, or provider is not built-in (HTML page). }
+  /api/v1/links:
     get:
-      tags: [dynamic]
-      summary: List dynamic links (admin)
-      security: [{ adminAuth: [] }]
+      tags: [links]
+      summary: List dynamic links
+      security: [{ adminSession: [] }, {}]
       responses:
         '200':
           description: Links.
@@ -154,9 +158,9 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { description: Module disabled. }
     post:
-      tags: [dynamic]
-      summary: Create a dynamic link (admin)
-      security: [{ adminAuth: [] }]
+      tags: [links]
+      summary: Create a dynamic link (built-in or Sink)
+      security: [{ adminSession: [] }, {}]
       requestBody:
         required: true
         content:
@@ -173,16 +177,16 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '409': { description: Code already exists. }
-  /api/v1/dynamic/links/{code}:
+  /api/v1/links/{code}:
     parameters:
       - in: path
         name: code
         required: true
         schema: { type: string }
     get:
-      tags: [dynamic]
-      summary: Link details with daily aggregate scans (admin)
-      security: [{ adminAuth: [] }]
+      tags: [links]
+      summary: Link details (with daily aggregate scans for the built-in provider)
+      security: [{ adminSession: [] }, {}]
       responses:
         '200':
           description: Link and aggregate scans per UTC day.
@@ -197,9 +201,9 @@ paths:
                     items: { type: object, properties: { day: { type: string, format: date }, count: { type: integer } } }
         '404': { description: Not found. }
     patch:
-      tags: [dynamic]
-      summary: Update destination, label, expiry, scan limit or enabled state (admin)
-      security: [{ adminAuth: [] }]
+      tags: [links]
+      summary: Update destination, label, expiry, scan limit or enabled state
+      security: [{ adminSession: [] }, {}]
       requestBody:
         required: true
         content:
@@ -209,22 +213,131 @@ paths:
         '200': { description: Updated. }
         '404': { description: Not found. }
     delete:
-      tags: [dynamic]
-      summary: Delete a link and its counters (admin)
-      security: [{ adminAuth: [] }]
+      tags: [links]
+      summary: Delete a link
+      security: [{ adminSession: [] }, {}]
       responses:
         '204': { description: Deleted. }
         '404': { description: Not found. }
+  /api/admin/status:
+    get:
+      tags: [admin]
+      summary: Admin availability, setup state and whether the presented session is valid
+      security: [{ adminSession: [] }, {}]
+      responses:
+        '200':
+          description: Status.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  storage: { type: boolean }
+                  adminAvailable: { type: boolean }
+                  setupRequired: { type: boolean }
+                  passwordSource: { type: string, enum: [env, stored, none] }
+                  authenticated: { type: boolean }
+  /api/admin/setup:
+    post:
+      tags: [admin]
+      summary: Create the admin password (only while none exists)
+      security: [{}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [password], properties: { password: { type: string, minLength: 10 } } }
+      responses:
+        '201': { description: Password stored; returns a session token., content: { application/json: { schema: { $ref: '#/components/schemas/Session' } } } }
+        '400': { description: Password too short. }
+        '409': { description: A password already exists. }
+        '503': { description: No D1 database bound. }
+  /api/admin/login:
+    post:
+      tags: [admin]
+      summary: Log in with the admin password
+      security: [{}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [password], properties: { password: { type: string } } }
+      responses:
+        '200': { description: Session token., content: { application/json: { schema: { $ref: '#/components/schemas/Session' } } } }
+        '401': { description: Wrong password. }
+        '409': { description: Setup required first. }
+        '429': { description: Too many attempts. }
+  /api/admin/logout:
+    post:
+      tags: [admin]
+      summary: Log out (clients discard the stateless token)
+      responses:
+        '204': { description: OK. }
+  /api/admin/settings:
+    get:
+      tags: [admin]
+      summary: Current settings (secrets redacted)
+      security: [{ adminSession: [] }]
+      responses:
+        '200': { description: Settings., content: { application/json: { schema: { $ref: '#/components/schemas/SettingsResponse' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    put:
+      tags: [admin]
+      summary: Save settings
+      description: Empty secret fields keep the stored secret; set `clearApiToken` / `clearSinkToken` to remove one.
+      security: [{ adminSession: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [settings]
+              properties:
+                settings: { $ref: '#/components/schemas/AppSettings' }
+                clearApiToken: { type: boolean }
+                clearSinkToken: { type: boolean }
+      responses:
+        '200': { description: Saved., content: { application/json: { schema: { $ref: '#/components/schemas/SettingsResponse' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/admin/settings/test-sink:
+    post:
+      tags: [admin]
+      summary: Verify connectivity and token of a Sink instance
+      security: [{ adminSession: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [baseUrl], properties: { baseUrl: { type: string, format: uri }, token: { type: string, description: Omit to use the stored token. } } }
+      responses:
+        '200': { description: Connected., content: { application/json: { schema: { type: object, properties: { ok: { type: boolean }, message: { type: string } } } } } }
+        '502': { description: Unreachable or rejected token. }
+  /api/admin/password:
+    post:
+      tags: [admin]
+      summary: Change the stored admin password
+      security: [{ adminSession: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [currentPassword, newPassword], properties: { currentPassword: { type: string }, newPassword: { type: string, minLength: 10 } } }
+      responses:
+        '204': { description: Changed. }
+        '401': { description: Current password wrong. }
+        '409': { description: Password comes from ADMIN_PASSWORD. }
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       description: Required only when the API_TOKEN variable is configured.
-    adminAuth:
+    adminSession:
       type: http
       scheme: bearer
-      description: DYNAMIC_ADMIN_TOKEN secret (dynamic module only).
+      description: Session token returned by POST /api/admin/login or /api/admin/setup (valid 12 hours).
   requestBodies:
     Generate:
       required: true
@@ -236,7 +349,7 @@ components:
             text:
               summary: Plain text as SVG
               value:
-                content: { type: text, value: { text: 'Hello from EdgeQR Studio ✨' } }
+                content: { type: text, value: { text: 'Hello from FlareQR Studio ✨' } }
                 output: { format: svg, filename: hello }
             url:
               summary: URL with gradient, rounded modules, PNG 1024 px
@@ -361,7 +474,20 @@ components:
         commit: { type: string }
         buildTime: { type: string, format: date-time }
         api: { type: object, properties: { version: { type: string }, openapi: { type: string } } }
-        features: { type: object, properties: { dynamicQr: { type: boolean }, apiTokenRequired: { type: boolean } } }
+        features:
+          type: object
+          properties:
+            appName: { type: string }
+            storage: { type: boolean, description: A D1 database is bound. }
+            adminSetupRequired: { type: boolean, description: No admin password exists yet. }
+            adminAvailable: { type: boolean }
+            apiTokenRequired: { type: boolean }
+            dynamicLinks:
+              type: object
+              properties:
+                provider: { type: string, enum: [off, builtin, sink] }
+                publicAccess: { type: boolean }
+                linkBaseUrl: { type: string, description: Base URL used in generated short links. }
         limits: { type: object, properties: { maxRequestBodyBytes: { type: integer }, maxRasterSize: { type: integer }, maxPayloadChars: { type: integer } } }
     GenerateRequest:
       type: object
@@ -539,11 +665,57 @@ components:
             height: { type: integer }
             mimeType: { type: string }
             filename: { type: string }
+    Session:
+      type: object
+      properties:
+        token: { type: string }
+        expiresAt: { type: string, format: date-time }
+    AppSettings:
+      type: object
+      properties:
+        general:
+          type: object
+          properties: { appName: { type: string, maxLength: 60 } }
+        api:
+          type: object
+          properties:
+            requireToken: { type: boolean }
+            token: { type: string, description: Write-only; at least 16 characters when requireToken is true. }
+            corsAllowedOrigins: { type: array, items: { type: string, format: uri } }
+            maxRasterSize: { type: integer, minimum: 128, maximum: 8192 }
+        dynamic:
+          type: object
+          properties:
+            provider: { type: string, enum: [off, builtin, sink] }
+            publicAccess: { type: boolean }
+            builtin: { type: object, properties: { publicBaseUrl: { type: string } } }
+            sink:
+              type: object
+              properties:
+                baseUrl: { type: string }
+                token: { type: string, description: Write-only Sink NUXT_SITE_TOKEN. }
+                linkBaseUrl: { type: string }
+    SettingsResponse:
+      type: object
+      properties:
+        settings:
+          allOf:
+            - $ref: '#/components/schemas/AppSettings'
+            - type: object
+              properties:
+                secrets: { type: object, properties: { apiToken: { type: boolean }, sinkToken: { type: boolean } } }
+        env:
+          type: object
+          properties:
+            adminPasswordFromEnv: { type: boolean }
+            apiTokenFromEnv: { type: boolean }
+            corsFromEnv: { type: array, items: { type: string } }
+            storage: { type: boolean }
     DynamicLinkInput:
       type: object
       required: [destination]
       properties:
-        code: { type: string, pattern: '^[A-Za-z0-9_-]{4,32}$' }
+        code: { type: string, pattern: '^[A-Za-z0-9_-]{2,64}$', description: Code (built-in) or slug (Sink); generated when omitted. }
         destination: { type: string, format: uri }
         label: { type: string, maxLength: 120 }
         enabled: { type: boolean, default: true }
@@ -567,6 +739,8 @@ components:
         enabled: { type: boolean }
         expiresAt: { type: [string, 'null'], format: date-time }
         maxScans: { type: [integer, 'null'] }
-        scanCount: { type: integer }
-        createdAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
+        scanCount: { type: [integer, 'null'], description: Aggregate count (built-in provider only). }
+        createdAt: { type: [string, 'null'], format: date-time }
+        updatedAt: { type: [string, 'null'], format: date-time }
+        provider: { type: string, enum: [builtin, sink] }
+        statsUrl: { type: [string, 'null'], format: uri, description: Sink dashboard page for this link. }
