@@ -1,0 +1,14 @@
+dist
+node_modules
+.wrangler
+playwright-report
+test-results
+coverage
+package-lock.json
+worker-configuration.d.ts
+src/shared/qr/qrcodegen.ts
+public/openapi.yaml
+*.bin
+*.png
+*.ico
+CHANGELOG.md
