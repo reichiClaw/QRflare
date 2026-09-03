@@ -54,14 +54,21 @@ export function Header({
   return (
     <header className="sticky top-0 z-30 border-b border-default bg-surface/85 backdrop-blur supports-[backdrop-filter]:bg-surface/70">
       <div className="mx-auto flex h-14 max-w-[1600px] items-center gap-3 px-3 sm:px-5">
-        <a href="/" className="flex items-center gap-2 rounded-lg" aria-label={`${branding.name} home`}>
+        <a
+          href="/"
+          className="flex shrink-0 items-center gap-2 rounded-lg"
+          aria-label={`${branding.name} home`}
+        >
           <img src={branding.logoPath} alt="" width={28} height={28} className="rounded-md" />
           <span className="hidden text-sm font-semibold tracking-tight sm:inline">
             {features.appName || branding.name}
           </span>
         </a>
 
-        <nav aria-label="Primary" className="ml-2 flex items-center gap-1 rounded-xl bg-surface-3 p-1">
+        <nav
+          aria-label="Primary"
+          className="ml-1 flex min-w-0 flex-1 items-center gap-1 overflow-x-auto rounded-xl bg-surface-3 p-1 scroll-thin sm:ml-2 sm:flex-none"
+        >
           {nav.map((item) => {
             const Icon = item.icon;
             const active = item.id === view;
@@ -72,7 +79,7 @@ export function Header({
                 onClick={() => onViewChange(item.id)}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors sm:text-sm',
+                  'flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors sm:text-sm',
                   active
                     ? 'bg-surface-2 text-fg shadow-sm ring-1 ring-brand-500/40'
                     : 'text-muted hover:text-fg',
@@ -85,7 +92,7 @@ export function Header({
           })}
         </nav>
 
-        <div className="ml-auto flex items-center gap-1">
+        <div className="ml-auto flex shrink-0 items-center gap-1">
           {view === 'studio' ? (
             <>
               <Button
