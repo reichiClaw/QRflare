@@ -50,7 +50,10 @@ test.describe('admin area', () => {
     await loginIfNeeded(page);
 
     await page.getByRole('button', { name: 'Built-in (this Worker)' }).click();
-    await page.getByRole('textbox', { name: 'Public link domain (optional)' }).fill('https://qr.example.com');
+    const domains = page.getByRole('textbox', { name: 'Available domains (one per line)' });
+    await domains.fill('https://qr.example.com');
+    await domains.blur();
+    await page.getByLabel('Domain used in generated QR codes').selectOption('https://qr.example.com');
     await page.getByRole('button', { name: 'Save settings' }).click();
     await expect(page.getByText('Settings saved')).toBeVisible();
 

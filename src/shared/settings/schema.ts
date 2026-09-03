@@ -49,26 +49,30 @@ export const AppSettingsSchema = z
         publicAccess: z.boolean().default(false),
         builtin: z
           .object({
-            /** Domain used in generated short links, e.g. https://qr.example.com. Empty = this deployment's origin. */
+            /** Custom domains routed to this Worker, e.g. https://qr.example.com. */
+            domains: z.array(optionalUrl).max(20).default([]),
+            /** Domain used in generated short links; must be one of `domains`. Empty = this deployment's origin. */
             publicBaseUrl: optionalUrl.default(''),
           })
-          .default({ publicBaseUrl: '' }),
+          .default({ domains: [], publicBaseUrl: '' }),
         sink: z
           .object({
             /** Where the Sink instance is reachable, e.g. https://s.example.com. */
             baseUrl: optionalUrl.default(''),
             /** Sink's NUXT_SITE_TOKEN. */
             token: z.string().trim().max(200).default(''),
-            /** Domain to use in generated short links when it differs from baseUrl (e.g. https://go.example.com). */
+            /** Additional domains attached to the Sink instance, e.g. https://go.example.com. */
+            domains: z.array(optionalUrl).max(20).default([]),
+            /** Domain used in generated short links; must be the Sink URL or one of `domains`. Empty = Sink URL. */
             linkBaseUrl: optionalUrl.default(''),
           })
-          .default({ baseUrl: '', token: '', linkBaseUrl: '' }),
+          .default({ baseUrl: '', token: '', domains: [], linkBaseUrl: '' }),
       })
       .default({
         provider: 'off',
         publicAccess: false,
-        builtin: { publicBaseUrl: '' },
-        sink: { baseUrl: '', token: '', linkBaseUrl: '' },
+        builtin: { domains: [], publicBaseUrl: '' },
+        sink: { baseUrl: '', token: '', domains: [], linkBaseUrl: '' },
       }),
   })
   .superRefine((s, ctx) => {
@@ -92,6 +96,24 @@ export const AppSettingsSchema = z
           path: ['dynamic', 'sink', 'token'],
           message: 'Enter the Sink site token (NUXT_SITE_TOKEN, at least 8 characters).',
         });
+    }
+    const sinkChoices = [s.dynamic.sink.baseUrl, ...s.dynamic.sink.domains].filter(Boolean);
+    if (s.dynamic.sink.linkBaseUrl && !sinkChoices.includes(s.dynamic.sink.linkBaseUrl)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['dynamic', 'sink', 'linkBaseUrl'],
+        message: 'Pick the Sink URL or one of the Sink domains listed above.',
+      });
+    }
+    if (
+      s.dynamic.builtin.publicBaseUrl &&
+      !s.dynamic.builtin.domains.includes(s.dynamic.builtin.publicBaseUrl)
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['dynamic', 'builtin', 'publicBaseUrl'],
+        message: 'Pick one of the domains listed above.',
+      });
     }
   });
 

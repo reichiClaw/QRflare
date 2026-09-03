@@ -6,7 +6,7 @@ import { DEFAULT_SETTINGS, type AppSettings, type DynamicProvider } from '@share
 import { apiFetch, ApiRequestError, useServer } from '../../store/server';
 import { toast } from '../../store/toast';
 import { Button } from '../ui/Button';
-import { NumberInput, Segmented, Switch, TextArea, TextInput } from '../ui/Field';
+import { NumberInput, Segmented, Select, Switch, TextArea, TextInput } from '../ui/Field';
 import { Callout, SectionTitle } from '../ui/Primitives';
 
 type Redacted = AppSettings & { secrets: { apiToken: boolean; sinkToken: boolean } };
@@ -21,6 +21,67 @@ function randomToken(length = 32): string {
   const bytes = new Uint8Array(length);
   crypto.getRandomValues(bytes);
   return Array.from(bytes, (b) => alphabet[b % alphabet.length]).join('');
+}
+
+/**
+ * "Available domains" list + "which one to use" selector. Only domains that
+ * actually route to the provider should be listed; the selected one is encoded
+ * in every generated QR code.
+ */
+function DomainPicker({
+  domains,
+  selected,
+  defaultLabel,
+  onChange,
+  listError,
+  selectError,
+  listDescription,
+}: {
+  domains: string[];
+  selected: string;
+  defaultLabel: string;
+  onChange: (next: { domains: string[]; selected: string }) => void;
+  listError?: string;
+  selectError?: string;
+  listDescription: string;
+}) {
+  // Remounted by the parent (via `key`) whenever the domain list changes elsewhere.
+  const [text, setText] = useState(domains.join('\n'));
+  const commit = (raw: string) => {
+    const list = [
+      ...new Set(
+        raw
+          .split(/[\n,]/)
+          .map((d) => d.trim().replace(/\/+$/, ''))
+          .filter(Boolean),
+      ),
+    ];
+    onChange({ domains: list, selected: list.includes(selected) ? selected : '' });
+  };
+  return (
+    <div className="flex flex-col gap-3">
+      <TextArea
+        label="Available domains (one per line)"
+        value={text}
+        onChange={setText}
+        onBlur={() => commit(text)}
+        rows={3}
+        placeholder={'https://go.example.com\nhttps://qr.example.org'}
+        description={listDescription}
+        error={listError}
+        mono
+        spellCheck={false}
+      />
+      <Select
+        label="Domain used in generated QR codes"
+        value={selected}
+        onChange={(value) => onChange({ domains, selected: value })}
+        options={[{ value: '', label: defaultLabel }, ...domains.map((d) => ({ value: d, label: d }))]}
+        error={selectError}
+        description={domains.length === 0 ? 'Add domains above to choose a different one.' : undefined}
+      />
+    </div>
+  );
 }
 
 export function SettingsForm() {
@@ -160,7 +221,7 @@ export function SettingsForm() {
           live.
         </p>
         <Segmented
-          label="Provider"
+          label="Where should dynamic links live?"
           value={provider}
           onChange={(p: DynamicProvider) => patch('dynamic', { provider: p })}
           options={[
@@ -176,14 +237,17 @@ export function SettingsForm() {
               <code>{origin}/r/&lt;code&gt;</code>. Only aggregate scan counts are kept – no IP addresses or
               fingerprints.
             </Callout>
-            <TextInput
-              label="Public link domain (optional)"
-              value={draft.dynamic.builtin.publicBaseUrl}
-              onChange={(publicBaseUrl) => patch('dynamic', { builtin: { publicBaseUrl } })}
-              placeholder={origin}
-              description="Use this when the Worker is reachable under a custom domain, e.g. https://qr.example.com. QR codes will encode that domain."
-              error={errors['dynamic.builtin.publicBaseUrl']}
-              autoCapitalize="off"
+            <DomainPicker
+              key={`builtin:${draft.dynamic.builtin.domains.join('|')}`}
+              domains={draft.dynamic.builtin.domains}
+              selected={draft.dynamic.builtin.publicBaseUrl}
+              defaultLabel={`${origin} (this deployment)`}
+              onChange={({ domains, selected }) =>
+                patch('dynamic', { builtin: { domains, publicBaseUrl: selected } })
+              }
+              listDescription="Custom domains you attached to this Worker (Settings → Domains & Routes in the Cloudflare dashboard). The workers.dev address always works."
+              listError={Object.entries(errors).find(([k]) => k.startsWith('dynamic.builtin.domains'))?.[1]}
+              selectError={errors['dynamic.builtin.publicBaseUrl']}
             />
           </div>
         ) : null}
@@ -223,14 +287,17 @@ export function SettingsForm() {
               error={errors['dynamic.sink.token']}
               autoComplete="off"
             />
-            <TextInput
-              label="Short link domain (optional)"
-              value={draft.dynamic.sink.linkBaseUrl}
-              onChange={(linkBaseUrl) => patch('dynamic', { sink: { ...draft.dynamic.sink, linkBaseUrl } })}
-              placeholder={draft.dynamic.sink.baseUrl || 'https://go.example.com'}
-              description="If your short links are served from a different domain than the Sink dashboard, enter it here. QR codes encode this domain."
-              error={errors['dynamic.sink.linkBaseUrl']}
-              autoCapitalize="off"
+            <DomainPicker
+              key={`sink:${draft.dynamic.sink.domains.join('|')}`}
+              domains={draft.dynamic.sink.domains}
+              selected={draft.dynamic.sink.linkBaseUrl}
+              defaultLabel={`${draft.dynamic.sink.baseUrl || 'Sink URL'} (Sink URL)`}
+              onChange={({ domains, selected }) =>
+                patch('dynamic', { sink: { ...draft.dynamic.sink, domains, linkBaseUrl: selected } })
+              }
+              listDescription="Other domains attached to your Sink Worker that serve the same short links. Sink resolves any of them; pick the one QR codes should carry."
+              listError={Object.entries(errors).find(([k]) => k.startsWith('dynamic.sink.domains'))?.[1]}
+              selectError={errors['dynamic.sink.linkBaseUrl']}
             />
             <div>
               <Button

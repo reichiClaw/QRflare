@@ -220,8 +220,34 @@ describe('dynamic links: built-in provider', () => {
     const token = await setupAdmin();
     expect((await call('/api/v1/links')).status).toBe(404); // provider off
 
+    const badDomain = await call(
+      '/api/admin/settings',
+      {
+        method: 'PUT',
+        body: JSON.stringify({
+          settings: {
+            dynamic: {
+              provider: 'builtin',
+              builtin: { domains: [], publicBaseUrl: 'https://qr.example.com' },
+            },
+          },
+        }),
+      },
+      token,
+    );
+    expect(badDomain.status).toBe(400);
+    expect(
+      (await readJson<{ error: { issues: Array<{ path: string }> } }>(badDomain)).error.issues[0]?.path,
+    ).toBe('dynamic.builtin.publicBaseUrl');
+
     await saveSettings(token, {
-      dynamic: { provider: 'builtin', builtin: { publicBaseUrl: 'https://qr.example.com' } },
+      dynamic: {
+        provider: 'builtin',
+        builtin: {
+          domains: ['https://qr.example.com', 'https://qr.example.org'],
+          publicBaseUrl: 'https://qr.example.com',
+        },
+      },
     });
     const health = await readJson<{ features: { dynamicLinks: { provider: string; linkBaseUrl: string } } }>(
       await call('/api/health'),
@@ -435,6 +461,7 @@ describe('dynamic links: Sink provider', () => {
         sink: {
           baseUrl: 'https://sink.example',
           token: 'sink-site-token',
+          domains: ['https://go.example.com'],
           linkBaseUrl: 'https://go.example.com',
         },
       },

@@ -12,6 +12,7 @@ All notable changes to this project are documented here. The format follows
 - **In-app settings** stored in an auto-provisioned D1 database: application name, dynamic-link provider and domain, Sink connection with connection test, API bearer token (with generator), CORS allowlist, maximum raster size, public/admin-only link management. Environment variables act as defaults.
 - **Sink provider** for dynamic links: create, list, edit and delete links in a self-hosted [Sink](https://github.com/miantiao-me/sink) instance through its API, with an optional separate short-link domain encoded in the QR codes.
 - Unified `/api/v1/links` API and **Links** page for both providers; **Use in studio** loads a short link into the editor.
+- Domain management for both providers: list the domains routed to the built-in Worker or to the Sink instance and choose which one generated QR codes carry (validated server-side).
 - `GET /api/health` now reports public features (`appName`, `storage`, `adminSetupRequired`, `apiTokenRequired`, `dynamicLinks`).
 - Admin flow covered by workerd tests (real D1) and a Playwright test.
 

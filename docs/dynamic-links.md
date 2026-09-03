@@ -14,7 +14,7 @@ Both providers use the same **Links** page and the same `/api/v1/links` API.
 Nothing to install: the database is provisioned automatically with the Worker and the tables are created on first use.
 
 1. Admin → Settings → **Provider: Built-in (this Worker)**.
-2. Optional: **Public link domain** – if the Worker is reachable under a custom domain (see README → Custom domain), enter it (e.g. `https://qr.example.com`). QR codes then encode that domain instead of `*.workers.dev`.
+2. Optional: if the Worker is reachable under custom domains (see README → Custom domain), list them under **Available domains** and pick the **Domain used in generated QR codes** (e.g. `https://qr.example.com`). Codes then encode that domain instead of `*.workers.dev`. The selection must be one of the listed domains; the default is this deployment's own origin.
 3. Save.
 
 Each link has a destination, optional label, enable/disable switch, optional expiry and optional maximum number of scans. Visiting `/r/<code>` returns `302` with `Referrer-Policy: no-referrer` and `Cache-Control: no-store`; disabled, expired, exhausted or unknown codes show a static "link unavailable" page.
@@ -30,7 +30,7 @@ Each link has a destination, optional label, enable/disable switch, optional exp
 3. In FlareQR Studio: Admin → Settings → **Provider: Sink instance**.
    - **Sink URL:** where the Sink dashboard is served, e.g. `https://s.example.com`.
    - **Sink site token:** the `NUXT_SITE_TOKEN`.
-   - **Short link domain (optional):** if Sink serves short links from a different domain than the dashboard (or you front it with another domain), enter it, e.g. `https://go.example.com`. Generated QR codes encode `https://go.example.com/<slug>`. Leave empty to use the Sink URL.
+   - **Available domains / Domain used in generated QR codes:** Sink builds short links from whatever host is requested, so every domain you attach to the Sink Worker works. List those domains (one per line) and select the one QR codes should carry, e.g. `https://go.example.com` → codes encode `https://go.example.com/<slug>`. The default selection is the Sink URL itself.
 4. Click **Test connection** (calls Sink's `/api/verify`), then **Save settings**.
 
 What FlareQR Studio calls on your Sink instance (always with `Authorization: Bearer <token>`):

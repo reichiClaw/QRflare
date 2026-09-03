@@ -119,16 +119,16 @@ Only the **Admin** page requires a password; the generator, batch mode, history 
 
 Settings available in the UI (stored in the auto-provisioned D1 database):
 
-| Section       | Setting                                      | Effect                                                                                          |
-| ------------- | -------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| General       | Application name                             | Header, footer, page title, `/api/health`                                                       |
-| Dynamic links | Provider: Off / Built-in / Sink              | Where short links live (see [Dynamic links](#dynamic-links))                                    |
-|               | Public link domain (built-in)                | Domain encoded in QR codes, e.g. `https://qr.example.com` when you use a custom domain          |
-|               | Sink URL, Sink site token, Short link domain | Connection to your Sink instance and the domain its short links use; **Test connection** button |
-|               | Let anyone manage dynamic links              | Off (default): admin login required. On: the Links page works for everyone                      |
-| HTTP API      | Require a bearer token + token (Generate)    | Protects `/api/v1/*`; the bundled UI keeps working without a token                              |
-|               | Allowed cross-origin sites (CORS)            | Explicit allowlist; never `*`                                                                   |
-|               | Maximum raster width                         | Upper bound for API PNG/JPEG renders                                                            |
+| Section       | Setting                                                | Effect                                                                                    |
+| ------------- | ------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| General       | Application name                                       | Header, footer, page title, `/api/health`                                                 |
+| Dynamic links | Where should dynamic links live? Off / Built-in / Sink | Choose the built-in shortener or your Sink instance (see [Dynamic links](#dynamic-links)) |
+|               | Available domains + Domain used in QR codes            | List every domain routed to the provider, then pick the one QR codes should carry         |
+|               | Sink URL, Sink site token                              | Connection to your Sink instance; **Test connection** button                              |
+|               | Let anyone manage dynamic links                        | Off (default): admin login required. On: the Links page works for everyone                |
+| HTTP API      | Require a bearer token + token (Generate)              | Protects `/api/v1/*`; the bundled UI keeps working without a token                        |
+|               | Allowed cross-origin sites (CORS)                      | Explicit allowlist; never `*`                                                             |
+|               | Maximum raster width                                   | Upper bound for API PNG/JPEG renders                                                      |
 
 Environment variables (`APP_NAME`, `API_TOKEN`, `CORS_ALLOWED_ORIGINS`, `MAX_RASTER_SIZE`) act as defaults; values saved in Admin override them. Secrets are never sent back to the browser – the UI only shows whether one is stored.
 
@@ -140,7 +140,7 @@ A dynamic QR code encodes a short URL that redirects to a destination you can ch
 
 - Links are stored in this Worker's D1 database and served from `/r/<code>` with a `302` redirect.
 - Per link: destination, label, enable/disable, expiry date, maximum scans, aggregate scan count and per-day counts.
-- If your Worker is reachable under a custom domain, enter it as **Public link domain** so QR codes encode `https://qr.example.com/r/<code>` instead of the `workers.dev` URL.
+- If your Worker is reachable under custom domains, list them under **Available domains** and pick the **Domain used in generated QR codes** – codes then encode `https://qr.example.com/r/<code>` instead of the `workers.dev` URL.
 
 ### Sink provider
 
@@ -148,7 +148,7 @@ If you already run [Sink](https://github.com/miantiao-me/sink), let FlareQR Stud
 
 1. Enter the **Sink URL** (where its dashboard lives, e.g. `https://s.example.com`).
 2. Enter the **Sink site token** – the value of Sink's `NUXT_SITE_TOKEN`.
-3. If your short links are served from a different domain than the dashboard, enter it as **Short link domain** (e.g. `https://go.example.com`). QR codes encode `https://go.example.com/<slug>`.
+3. If several domains point at your Sink Worker (Sink serves short links from any host routed to it), list them under **Available domains** and choose the **Domain used in generated QR codes** (e.g. `https://go.example.com`). QR codes then encode `https://go.example.com/<slug>`; leave the selection on the Sink URL otherwise.
 4. Click **Test connection**, then **Save settings**.
 
 FlareQR Studio then proxies create/list/edit/delete to Sink's API (`/api/link/*`), shows Sink's dashboard link for statistics, and never stores link data itself. Sink returns HTTP 423 until its storage has been initialised once from its own dashboard; the UI surfaces that message.
@@ -254,7 +254,7 @@ Optional. In the Cloudflare dashboard open **Workers & Pages → flareqr-studio 
 "routes": [{ "pattern": "qr.example.com", "custom_domain": true }]
 ```
 
-Redeploy, then enter the domain as **Public link domain** in Admin → Settings so built-in dynamic links encode it. Set `"workers_dev": false` if you want to disable the `workers.dev` URL.
+Redeploy, then add the domain under Admin → Settings → Dynamic links → **Available domains** and select it as the domain used in QR codes. Set `"workers_dev": false` if you want to disable the `workers.dev` URL.
 
 ## HTTP API
 

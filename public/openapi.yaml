@@ -688,13 +688,14 @@ components:
           properties:
             provider: { type: string, enum: [off, builtin, sink] }
             publicAccess: { type: boolean }
-            builtin: { type: object, properties: { publicBaseUrl: { type: string } } }
+            builtin: { type: object, properties: { domains: { type: array, items: { type: string } }, publicBaseUrl: { type: string, description: One of `domains`, or empty for this origin. } } }
             sink:
               type: object
               properties:
                 baseUrl: { type: string }
                 token: { type: string, description: Write-only Sink NUXT_SITE_TOKEN. }
-                linkBaseUrl: { type: string }
+                domains: { type: array, items: { type: string } }
+                linkBaseUrl: { type: string, description: The Sink URL or one of `domains`; empty = Sink URL. }
     SettingsResponse:
       type: object
       properties:
