@@ -1,0 +1,21 @@
+{
+  "content": {
+    "type": "url",
+    "value": {
+      "url": "https://example.com"
+    }
+  },
+  "style": {
+    "transparentBackground": true,
+    "moduleShape": "dots",
+    "finderFrameShape": "circle",
+    "finderCenterShape": "circle"
+  },
+  "output": {
+    "format": "jpeg",
+    "size": 800,
+    "jpegQuality": 85,
+    "jpegBackground": "#F8FAFC",
+    "filename": "dots"
+  }
+}

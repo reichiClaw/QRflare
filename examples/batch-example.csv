@@ -1,0 +1,6 @@
+name,type,format,size,preset,data,ssid,password,encryption,firstName,lastName,phone,email,organization
+website,url,png,1024,Electric blue & teal,https://example.com,,,,,,,,
+plain-text,text,svg,512,,Hello from the batch generator,,,,,,,,
+guest-wifi,wifi,png,1024,Classic black & white,,Cafe Guest,latte;art,WPA,,,,,
+ada,vcard,jpeg,1024,Rounded blue,,,,,Ada,Lovelace,+44 20 7946 0958,ada@example.com,Analytical Engines Ltd
+call-us,phone,png,512,,+1 415 555 0132,,,,,,,,

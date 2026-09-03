@@ -1,0 +1,12 @@
+{
+  "content": {
+    "type": "text",
+    "value": {
+      "text": "Hello from EdgeQR Studio ✨"
+    }
+  },
+  "output": {
+    "format": "svg",
+    "filename": "hello"
+  }
+}

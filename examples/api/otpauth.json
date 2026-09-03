@@ -1,0 +1,22 @@
+{
+  "content": {
+    "type": "otpauth",
+    "value": {
+      "type": "totp",
+      "account": "alice@example.com",
+      "issuer": "Example",
+      "secret": "JBSWY3DPEHPK3PXP",
+      "algorithm": "SHA1",
+      "digits": 6,
+      "period": 30
+    }
+  },
+  "qr": {
+    "errorCorrection": "M"
+  },
+  "output": {
+    "format": "png",
+    "size": 400,
+    "filename": "totp"
+  }
+}

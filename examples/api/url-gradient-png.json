@@ -1,0 +1,39 @@
+{
+  "content": {
+    "type": "url",
+    "value": {
+      "url": "https://example.com"
+    }
+  },
+  "qr": {
+    "errorCorrection": "H",
+    "version": "auto",
+    "marginModules": 4
+  },
+  "style": {
+    "moduleShape": "rounded",
+    "foreground": "#082F49",
+    "background": "#FFFFFF",
+    "gradient": {
+      "enabled": true,
+      "type": "linear",
+      "angle": 45,
+      "stops": [
+        {
+          "offset": 0,
+          "color": "#2563EB"
+        },
+        {
+          "offset": 1,
+          "color": "#14B8A6"
+        }
+      ]
+    }
+  },
+  "output": {
+    "format": "png",
+    "size": 1024,
+    "jpegQuality": 90,
+    "filename": "example-qr"
+  }
+}

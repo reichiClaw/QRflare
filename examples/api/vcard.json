@@ -1,0 +1,36 @@
+{
+  "content": {
+    "type": "vcard",
+    "value": {
+      "version": "3.0",
+      "firstName": "Ada",
+      "lastName": "Lovelace",
+      "organization": "Analytical Engines Ltd",
+      "title": "Mathematician",
+      "phones": [
+        {
+          "type": "CELL",
+          "number": "+44 20 7946 0958"
+        }
+      ],
+      "emails": [
+        {
+          "type": "WORK",
+          "address": "ada@example.com"
+        }
+      ],
+      "website": "https://example.com",
+      "street": "12 Byron Street",
+      "city": "London",
+      "postalCode": "W1J 5AA",
+      "country": "United Kingdom"
+    }
+  },
+  "qr": {
+    "errorCorrection": "M"
+  },
+  "output": {
+    "format": "svg",
+    "filename": "ada-lovelace"
+  }
+}

@@ -1,0 +1,60 @@
+name: Bug report
+description: Something does not work as documented
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a problem. **Do not include real secrets, passwords or personal data** in the report – replace them with dummy values.
+        For security vulnerabilities please use private reporting as described in SECURITY.md instead.
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: A clear description of the bug and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Select content type …
+        2. Enter …
+        3. Click Download PNG
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Web UI (editor)
+        - Batch generation
+        - HTTP API
+        - Scanning / decoding result
+        - Deployment / Cloudflare
+        - Dynamic QR module
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version / commit
+      description: Output of `GET /api/health` (`version` and `commit`) or the git commit.
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and OS
+      placeholder: Chrome 130 on macOS 15 / Safari on iOS 18
+  - type: textarea
+    id: request
+    attributes:
+      label: Request body or CSV row (with dummy data)
+      render: json
+  - type: textarea
+    id: logs
+    attributes:
+      label: Console output or error message
+      render: shell

@@ -1,0 +1,16 @@
+{
+  "content": {
+    "type": "wifi",
+    "value": {
+      "ssid": "Cafe Guest",
+      "password": "latte;art",
+      "encryption": "WPA",
+      "hidden": false
+    }
+  },
+  "output": {
+    "format": "png",
+    "size": 512,
+    "filename": "guest-wifi"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "content": {
+    "type": "url",
+    "value": {
+      "url": "https://example.com/menu"
+    }
+  },
+  "style": {
+    "moduleShape": "extra-rounded",
+    "layout": {
+      "frame": {
+        "enabled": true,
+        "color": "#2563EB",
+        "radius": 64,
+        "thickness": 60
+      },
+      "caption": {
+        "enabled": true,
+        "text": "Scan for the menu",
+        "fontSize": 64,
+        "fontWeight": 700,
+        "align": "center",
+        "color": "#FFFFFF",
+        "position": "bottom",
+        "gap": 24
+      }
+    }
+  },
+  "output": {
+    "format": "svg",
+    "filename": "menu"
+  }
+}

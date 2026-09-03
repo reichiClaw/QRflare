@@ -1,0 +1,54 @@
+{
+  "app": "edgeqr-studio",
+  "version": 1,
+  "presets": [
+    {
+      "id": "brand-midnight",
+      "name": "Brand midnight",
+      "description": "Deep navy modules with teal finder patterns.",
+      "builtIn": false,
+      "style": {
+        "moduleShape": "extra-rounded",
+        "finderFrameShape": "extra-rounded",
+        "finderCenterShape": "rounded",
+        "foreground": "#0B1F4B",
+        "background": "#FFFFFF",
+        "finderColors": {
+          "enabled": true,
+          "frame": "#0F766E",
+          "center": "#0F766E"
+        }
+      }
+    },
+    {
+      "id": "poster",
+      "name": "Poster",
+      "description": "High-contrast with a bold caption for print.",
+      "builtIn": false,
+      "style": {
+        "moduleShape": "square",
+        "foreground": "#000000",
+        "background": "#FFFFFF",
+        "layout": {
+          "padding": 32,
+          "border": {
+            "enabled": true,
+            "width": 12,
+            "color": "#000000",
+            "radius": 24
+          },
+          "caption": {
+            "enabled": true,
+            "text": "Scan me",
+            "fontSize": 80,
+            "fontWeight": 700,
+            "align": "center",
+            "color": "#000000",
+            "position": "bottom",
+            "gap": 28
+          }
+        }
+      }
+    }
+  ]
+}

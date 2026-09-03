@@ -1,0 +1,14 @@
+# Copy to `.dev.vars` for local development (git-ignored). All values are optional.
+
+# Require a bearer token for /api/v1/* (the bundled UI stays exempt).
+# API_TOKEN=change-me
+
+# Allow cross-origin API calls from these origins (comma-separated). Empty = same-origin only.
+# CORS_ALLOWED_ORIGINS=https://app.example.com
+
+# Maximum raster width the API renders.
+# MAX_RASTER_SIZE=4096
+
+# Optional dynamic QR module (also needs a D1 binding named DYNAMIC_DB, see docs/dynamic-qr.md).
+# DYNAMIC_QR_ENABLED=true
+# DYNAMIC_ADMIN_TOKEN=change-me-too

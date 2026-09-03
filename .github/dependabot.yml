@@ -1,0 +1,38 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    groups:
+      cloudflare:
+        patterns:
+          - 'wrangler'
+          - '@cloudflare/*'
+      react:
+        patterns:
+          - 'react'
+          - 'react-dom'
+          - '@types/react'
+          - '@types/react-dom'
+      tooling:
+        patterns:
+          - 'vite'
+          - 'vitest'
+          - '@vitejs/*'
+          - 'eslint*'
+          - 'typescript-eslint'
+          - 'prettier'
+          - 'tailwindcss'
+          - '@tailwindcss/*'
+          - '@playwright/test'
+    labels:
+      - dependencies
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    labels:
+      - dependencies
