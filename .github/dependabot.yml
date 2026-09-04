@@ -28,6 +28,13 @@ updates:
           - 'tailwindcss'
           - '@tailwindcss/*'
           - '@playwright/test'
+    ignore:
+      # typescript-eslint declares `peer typescript >=4.8.4 <6.1.0`. A newer
+      # TypeScript major installs locally with only a warning but makes
+      # `npm ci` (CI and Cloudflare Workers Builds) fail with ERESOLVE.
+      # Drop this once typescript-eslint supports the new major.
+      - dependency-name: 'typescript'
+        update-types: ['version-update:semver-major']
     labels:
       - dependencies
   - package-ecosystem: github-actions
