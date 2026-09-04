@@ -392,16 +392,17 @@ Tested with Chromium (desktop + mobile emulation) in CI. Uses standard APIs avai
 
 ## Troubleshooting
 
-| Symptom                                                                        | Fix                                                                                                                                                       |
-| ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Admin says "not available on this deployment"                                  | The `DB` D1 binding is missing (e.g. removed from `wrangler.jsonc`). Restore it and redeploy, or set `ADMIN_PASSWORD`.                                    |
-| Somebody else set the admin password before you                                | Set the `ADMIN_PASSWORD` secret (it takes precedence) or delete the `kv` rows `admin.password`/`admin.session_secret` in the D1 console and set it again. |
-| Sink test fails with "storage not ready"                                       | Open your Sink dashboard → Links once (Sink initialises its storage lazily), then test again.                                                             |
-| Sink test fails with "rejected the site token"                                 | The token must equal Sink's `NUXT_SITE_TOKEN` (≥ 8 characters).                                                                                           |
-| `npm install` fails with `Cannot read properties of null (reading 'edgesOut')` | Known npm 10 bug. Use `npm ci` (committed lockfile) or npm ≥ 11.                                                                                          |
-| `This Worker requires compatibility date …` in tests                           | Run `npm ci` – `package.json` overrides align Miniflare/workerd with Wrangler's version.                                                                  |
-| Large PNG/JPEG API requests fail on the Free plan                              | 10 ms CPU limit. Use SVG, smaller sizes, render in the browser, or upgrade the plan.                                                                      |
-| A scanner cannot read a styled code                                            | Check **Scan reliability** and apply **Safe defaults**. Prefer error correction H with logos and a 4-module quiet zone.                                   |
+| Symptom                                                                                | Fix                                                                                                                                                             |
+| -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Admin says "not available on this deployment"                                          | The `DB` D1 binding is missing (e.g. removed from `wrangler.jsonc`). Restore it and redeploy, or set `ADMIN_PASSWORD`.                                          |
+| Somebody else set the admin password before you                                        | Set the `ADMIN_PASSWORD` secret (it takes precedence) or delete the `kv` rows `admin.password`/`admin.session_secret` in the D1 console and set it again.       |
+| Sink test fails with "storage not ready"                                               | Open your Sink dashboard → Links once (Sink initialises its storage lazily), then test again.                                                                   |
+| Sink test fails with "rejected the site token"                                         | The token must equal Sink's `NUXT_SITE_TOKEN` (≥ 8 characters).                                                                                                 |
+| `npm install` fails with `Cannot read properties of null (reading 'edgesOut')`         | Known npm 10 bug. Use `npm ci` (committed lockfile) or npm ≥ 11.                                                                                                |
+| `This Worker requires compatibility date …` in tests                                   | Run `npm ci` – `package.json` overrides align Miniflare/workerd with Wrangler's version.                                                                        |
+| Deploy fails with `ERESOLVE … peer typescript@">=4.8.4 <6.1.0" from typescript-eslint` | TypeScript was bumped past the range `typescript-eslint` supports. Set `typescript` back to `~5.9.3` in `package.json`, run `npm install`, commit the lockfile. |
+| Large PNG/JPEG API requests fail on the Free plan                                      | 10 ms CPU limit. Use SVG, smaller sizes, render in the browser, or upgrade the plan.                                                                            |
+| A scanner cannot read a styled code                                                    | Check **Scan reliability** and apply **Safe defaults**. Prefer error correction H with logos and a 4-module quiet zone.                                         |
 
 ## Customising
 
@@ -419,6 +420,8 @@ npm run check && npm run test:browser
 ```
 
 Dependabot opens weekly PRs. When bumping `wrangler`, also bump `@cloudflare/vite-plugin`, `@cloudflare/vitest-pool-workers` and the `overrides` in `package.json` so all share one workerd version.
+
+Keep `typescript` on `~5.9.x` until `typescript-eslint` widens its peer range (currently `>=4.8.4 <6.1.0`). `npm install typescript@latest` succeeds locally with only an `ERESOLVE overriding peer dependency` warning, but the resulting lockfile makes `npm ci` – used by CI and Cloudflare Workers Builds – fail hard. Dependabot is configured to skip TypeScript major bumps for this reason; after any manual dependency change, run `npm ci` once before pushing to catch this early.
 
 ## Architecture
 
